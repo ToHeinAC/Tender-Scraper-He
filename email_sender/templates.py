@@ -97,7 +97,7 @@ Tender Scraper System v1.0
         # List each portal
         for portal, status in sorted(portal_status.items()):
             if status.get("success", False):
-                records = status.get("records", 0)
+                records = status.get("records_new", 0)
                 parts.append(f"✓ {portal} - {records} Ergebnisse")
             else:
                 error = status.get("error", "Unbekannter Fehler")

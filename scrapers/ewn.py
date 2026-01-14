@@ -36,19 +36,24 @@ class EWNScraper(BaseScraper):
 
         try:
             # Navigate to tenders page
+            self.logger.info(f"Navigating to {self.PORTAL_URL}")
             self.driver.get(self.PORTAL_URL)
+
+            self.logger.info("Checking for cookie dialog...")
             self.accept_cookies()
 
-            # Wait for page to load
+            # Brief wait for page stability
             import time
-            time.sleep(2)
+            time.sleep(0.5)
 
             # Get page HTML
+            self.logger.info("Parsing tender listings...")
             html = self.driver.page_source
             soup = BeautifulSoup(html, "lxml")
 
             # Parse results
             results = self._parse_results(soup)
+            self.logger.info(f"Found {len(results)} tenders")
 
         except Exception as e:
             self.logger.error(f"EWN scraping failed: {e}")

@@ -119,7 +119,7 @@ class BaseScraper(ABC):
             user_agent=self.user_agent,
         )
         self.driver = self.browser_manager.create_driver()
-        self.logger.debug("WebDriver initialized")
+        self.logger.info("Browser initialized")
 
     def teardown_driver(self) -> None:
         """Clean up WebDriver resources."""

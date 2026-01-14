@@ -60,35 +60,27 @@ email:
 
 scrapers:
   enabled:
-    # German Government Portals
+    # Currently implemented scrapers
+    - bge                  # bge.de (Federal Nuclear Waste)
+    - ewn                  # ewn-gmbh.de (Nuclear Decommissioning)
     - vergabe_nrw          # evergabe.nrw.de
+
+  disabled:
+    # Not yet implemented - migrate later
     - deutsche_evergabe    # deutsche-evergabe.de
     - deutsches_vergabeportal  # dtvp.de
     - e_vergabe_online     # e-vergabe-online.de
     - bund_de              # bund.de
     - vergabe_rlp          # Rhineland-Palatinate
-
-    # Austrian/Swiss Portals
     - e_beschaffung_at     # e-beschaffung.at
     - simap_ch             # old.simap.ch
-
-    # Corporate/Institutional Portals
-    - bge                  # bge.de (Federal Nuclear Waste)
-    - ewn                  # ewn-gmbh.de (Nuclear Decommissioning)
     - rwe                  # rwe.com (Energy)
     - fraunhofer           # vergabe.fraunhofer.de (Research)
     - jen                  # JEN portal
     - kte                  # KTE portal
-
-    # Construction Portals
     - bauportal_deutschland  # bauportal-deutschland.de
     - ibau                 # ibau portal
-
-    # Other
     - evergabe             # eVergabe portal
-
-  disabled:
-    # Currently disabled scrapers (can be re-enabled in future)
     - ted_etendering       # ted.europa.eu (EU)
     - gtai                 # gtai-eu-ausschreibungen.de
     - auftrag_at           # Austrian portal
