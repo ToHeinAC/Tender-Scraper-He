@@ -1,0 +1,29 @@
+# Tender Scraper - Search Keywords
+# =================================
+# One keyword per line
+# Lines starting with # are comments
+# Blank lines are ignored
+# Case variants are generated automatically
+
+# Data Science & Analytics
+business analytics
+machine learning
+deep learning
+data analysis
+data analytics
+data mining
+Datenanalyse
+Analyse
+explorative
+
+# Artificial Intelligence
+KI
+künstliche Intelligenz
+künstliche
+Intelligenz
+intelligence
+Maschinelles Lernen
+maschinelles Lernen
+
+# Web & Automation
+web scraping

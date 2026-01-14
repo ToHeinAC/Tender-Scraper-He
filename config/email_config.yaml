@@ -1,0 +1,31 @@
+# Tender Scraper System - Email Configuration
+# ============================================
+
+# Sender email address (must match Outlook profile)
+sender: t.hein@brenk.com
+
+# Recipients
+recipients:
+  to:
+    - t.hein@brenk.com
+  cc:
+    - tobias.hein@hotmail.de
+  bcc: []
+
+# Email subject template
+# Available placeholders: {date}, {count}
+subject_template: "Ausschreibungen {date}"
+
+# Send email even if no new tenders found
+send_empty_report: true
+
+# Email body settings
+body:
+  # Language for email body
+  language: de
+
+  # Include portal status summary
+  include_portal_status: true
+
+  # Maximum tenders to include in email (0 = unlimited)
+  max_tenders: 0

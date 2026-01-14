@@ -1,0 +1,96 @@
+# Tender Scraper System - Main Configuration
+# ============================================
+
+general:
+  # Logging configuration
+  log_level: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_file: data/debug.log
+  log_max_bytes: 10485760  # 10 MB
+  log_backup_count: 5
+
+  # Database configuration
+  database_path: data/tenders.db
+
+scraping:
+  # Timeout settings (in seconds)
+  timeout_per_scraper: 300  # 5 minutes per scraper
+  timeout_global: 7200  # 2 hours total
+
+  # Delay between scrapers (to avoid detection)
+  delay_min: 6  # seconds
+  delay_max: 10  # seconds
+
+  # Browser settings
+  headless: true
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+  # Retry settings
+  max_retries: 2
+  retry_delay: 30  # seconds
+
+keywords:
+  # Path to keywords file
+  file: config/Suchbegriffe.txt
+
+  # Matching settings
+  case_sensitive: false
+
+  # Fields to match against
+  match_fields:
+    - titel
+    - ausschreibungsstelle
+
+  # Keywords to exclude (even if other keywords match)
+  exclusions:
+    - Massenspektrometer
+    - Massenspektrometrie
+
+email:
+  # Email sending configuration
+  enabled: true
+  config_file: config/email_config.yaml
+
+  # How far back to look for "new" tenders (hours)
+  lookback_hours: 24
+
+# Scraper registry
+# ================
+# List scrapers to enable/disable
+# Each scraper corresponds to a Python module in scrapers/
+
+scrapers:
+  enabled:
+    # German Government Portals
+    - vergabe_nrw          # evergabe.nrw.de
+    - deutsche_evergabe    # deutsche-evergabe.de
+    - deutsches_vergabeportal  # dtvp.de
+    - e_vergabe_online     # e-vergabe-online.de
+    - bund_de              # bund.de
+    - vergabe_rlp          # Rhineland-Palatinate
+
+    # Austrian/Swiss Portals
+    - e_beschaffung_at     # e-beschaffung.at
+    - simap_ch             # old.simap.ch
+
+    # Corporate/Institutional Portals
+    - bge                  # bge.de (Federal Nuclear Waste)
+    - ewn                  # ewn-gmbh.de (Nuclear Decommissioning)
+    - rwe                  # rwe.com (Energy)
+    - fraunhofer           # vergabe.fraunhofer.de (Research)
+    - jen                  # JEN portal
+    - kte                  # KTE portal
+
+    # Construction Portals
+    - bauportal_deutschland  # bauportal-deutschland.de
+    - ibau                 # ibau portal
+
+    # Other
+    - evergabe             # eVergabe portal
+
+  disabled:
+    # Currently disabled scrapers (can be re-enabled in future)
+    - ted_etendering       # ted.europa.eu (EU)
+    - gtai                 # gtai-eu-ausschreibungen.de
+    - auftrag_at           # Austrian portal
+    - vergabe_bw           # Baden-Württemberg
+    - vergabeplattform_bw  # Baden-Württemberg (alt)

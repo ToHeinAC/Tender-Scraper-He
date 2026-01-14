@@ -1,0 +1,4 @@
+_old-solution-reference/
+data/tenders.db
+data/tenders.db-wal
+data/tenders.db-shm
