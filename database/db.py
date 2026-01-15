@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS tenders (
     ausschreibungsart TEXT,
     naechste_frist TEXT,
     veroeffentlicht TEXT,
+    email_sent INTEGER DEFAULT 0,
+    email_sent_at TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(portal, vergabe_id, link, titel)
@@ -67,6 +69,22 @@ CREATE INDEX IF NOT EXISTS idx_scrape_history_portal ON scrape_history(portal);
 CREATE INDEX IF NOT EXISTS idx_scrape_history_start ON scrape_history(scrape_start);
 CREATE INDEX IF NOT EXISTS idx_email_history_sent ON email_history(sent_at);
 """
+
+# Migration queries for existing databases
+MIGRATIONS = [
+    # Migration 1: Add email tracking columns to tenders table
+    # Existing tenders are marked as already sent (email_sent = 1)
+    """
+    ALTER TABLE tenders ADD COLUMN email_sent INTEGER DEFAULT 1;
+    """,
+    """
+    ALTER TABLE tenders ADD COLUMN email_sent_at TEXT;
+    """,
+    # Migration 2: Add index for email_sent column
+    """
+    CREATE INDEX IF NOT EXISTS idx_tenders_email_sent ON tenders(email_sent);
+    """,
+]
 
 
 class Database:
@@ -148,7 +166,7 @@ class Database:
             raise
 
     def initialize(self) -> None:
-        """Initialize database schema."""
+        """Initialize database schema and run migrations."""
         conn = self.connect()
         cursor = conn.cursor()
 
@@ -159,6 +177,24 @@ class Database:
         except Exception as e:
             logger.error(f"Failed to initialize database: {e}")
             raise
+
+        # Run migrations for existing databases
+        self._run_migrations()
+
+    def _run_migrations(self) -> None:
+        """Run database migrations for existing databases."""
+        conn = self.connect()
+        cursor = conn.cursor()
+
+        for migration in MIGRATIONS:
+            try:
+                cursor.execute(migration)
+                conn.commit()
+            except sqlite3.OperationalError as e:
+                # Ignore "duplicate column" errors (column already exists)
+                if "duplicate column" in str(e).lower():
+                    continue
+                logger.warning(f"Migration skipped or failed: {e}")
 
     def execute(
         self,
@@ -262,8 +298,9 @@ class Database:
         INSERT OR IGNORE INTO tenders (
             portal, suchbegriff, suchzeitpunkt, vergabe_id, link,
             titel, ausschreibungsstelle, ausfuehrungsort,
-            ausschreibungsart, naechste_frist, veroeffentlicht
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ausschreibungsart, naechste_frist, veroeffentlicht,
+            email_sent
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
         """
 
         params = (
@@ -302,8 +339,9 @@ class Database:
         INSERT OR IGNORE INTO tenders (
             portal, suchbegriff, suchzeitpunkt, vergabe_id, link,
             titel, ausschreibungsstelle, ausfuehrungsort,
-            ausschreibungsart, naechste_frist, veroeffentlicht
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ausschreibungsart, naechste_frist, veroeffentlicht,
+            email_sent
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
         """
 
         params_list = [
@@ -410,6 +448,55 @@ class Database:
             row = self.fetch_one("SELECT COUNT(*) as cnt FROM tenders")
 
         return row["cnt"] if row else 0
+
+    def get_unsent_tenders(self) -> List[Dict[str, Any]]:
+        """
+        Get tenders that have not been sent by email.
+
+        Returns:
+            List of tender dictionaries
+        """
+        query = """
+        SELECT * FROM tenders
+        WHERE email_sent = 0
+        ORDER BY created_at DESC
+        """
+
+        rows = self.fetch_all(query)
+        return [dict(row) for row in rows]
+
+    def mark_tenders_as_sent(self, tender_ids: List[int]) -> int:
+        """
+        Mark specific tenders as sent by email.
+
+        Args:
+            tender_ids: List of tender IDs to mark as sent
+
+        Returns:
+            Number of tenders marked as sent
+        """
+        if not tender_ids:
+            return 0
+
+        # Create placeholders for the IN clause
+        placeholders = ",".join("?" for _ in tender_ids)
+        sent_at = datetime.now().isoformat()
+
+        query = f"""
+        UPDATE tenders
+        SET email_sent = 1, email_sent_at = ?
+        WHERE id IN ({placeholders})
+        """
+
+        params = [sent_at] + list(tender_ids)
+
+        cursor = self.execute(query, tuple(params))
+        self.connect().commit()
+
+        updated = cursor.rowcount
+        logger.debug(f"Marked {updated} tenders as sent")
+
+        return updated
 
     # =========================================================================
     # Scrape History Operations

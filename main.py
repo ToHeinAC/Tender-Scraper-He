@@ -412,9 +412,9 @@ def main():
     logger.info(f"Scrapers: {successful} succeeded, {failed} failed")
     logger.info(f"Records: {total_found} found, {total_new} new")
 
-    # Get new tenders since last email
-    new_tenders = db.get_new_tenders_since_last_email()
-    logger.info(f"New tenders since last email: {len(new_tenders)}")
+    # Get tenders that haven't been sent by email yet
+    unsent_tenders = db.get_unsent_tenders()
+    logger.info(f"Unsent tenders: {len(unsent_tenders)}")
 
     # Send email if enabled and not skipped
     email_enabled = config.get("email", {}).get("enabled", True)
@@ -430,23 +430,30 @@ def main():
     should_send = (
         email_enabled
         and not args.skip_email
-        and (new_tenders or send_empty)
+        and (unsent_tenders or send_empty)
     )
 
     if should_send:
         logger.info("Sending email report...")
-        send_report_email(
-            tenders=new_tenders,
+        email_success = send_report_email(
+            tenders=unsent_tenders,
             portal_status=portal_status,
             email_config=email_config,
             db=db,
             dry_run=args.dry_run,
             logger=logger,
         )
+
+        # Mark tenders as sent if email was successful
+        if email_success and unsent_tenders and not args.dry_run:
+            tender_ids = [t["id"] for t in unsent_tenders]
+            marked = db.mark_tenders_as_sent(tender_ids)
+            logger.info(f"Marked {marked} tenders as sent")
+
     elif args.skip_email:
         logger.info("Email skipped (--skip-email)")
-    elif not new_tenders and not send_empty:
-        logger.info("No new tenders, skipping email")
+    elif not unsent_tenders and not send_empty:
+        logger.info("No unsent tenders, skipping email")
     else:
         logger.info("Email disabled in config")
 
