@@ -16,7 +16,7 @@ Automated scraper for German-language procurement portals. Collects tender annou
 ```bash
 # 1. Create virtual environment
 python -m venv venv
-.\venv\Scripts\activate  # Windows
+.\venv\Scripts\activate  # Windows (cmd.exe)
 source venv/bin/activate # Linux/Mac
 
 # 2. Install dependencies
@@ -33,6 +33,21 @@ python main.py --list-purposes
 python main.py --purpose BA              # Full run with email
 python main.py --purpose BA --dry-run    # Test without saving/emailing
 python main.py --purpose BA --verbose    # Debug output
+```
+
+### Windows: Run without activating venv
+
+If PowerShell blocks script execution, call Python directly from the venv:
+
+```powershell
+# Full path (no activation needed)
+C:\Users\He\Desktop\Tender-Scraper-He\venv\Scripts\python.exe C:\Users\He\Desktop\Tender-Scraper-He\main.py --purpose BA
+
+# Or use cmd.exe instead of PowerShell
+cmd
+cd C:\Users\He\Desktop\Tender-Scraper-He
+.\venv\Scripts\activate
+python main.py --purpose BA
 ```
 
 ## Command Line Options
