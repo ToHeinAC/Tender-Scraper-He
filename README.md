@@ -4,7 +4,7 @@ Automated scraper for German-language procurement portals. Collects tender annou
 
 ## Features
 
-- **Multi-Portal Scraping**: Supports 22+ procurement portals (BGE, EWN, Vergabe NRW, etc.)
+- **Multi-Portal Scraping**: Supports 24+ procurement portals (BGE, EWN, Vergabe NRW, Austrian USP, e-Vergabe Online, etc.)
 - **Multi-Purpose Support**: Run separate scraping campaigns with different keywords and recipients
 - **Keyword Filtering**: Configurable search terms with exclusion support
 - **SQLite Storage**: Persistent storage with duplicate detection and per-tender email tracking
@@ -166,9 +166,11 @@ tender-scraper/
 ├── scrapers/
 │   ├── base.py             # BaseScraper class
 │   ├── registry.py         # Auto-discovery
-│   ├── bge.py              # BGE portal scraper
-│   ├── ewn.py              # EWN portal scraper
-│   └── vergabe_nrw.py      # Vergabe NRW scraper
+│   ├── _bge.py             # BGE portal scraper
+│   ├── _ewn.py             # EWN portal scraper
+│   ├── _vergabe_nrw.py     # Vergabe NRW scraper
+│   ├── _ausschreibung_usp_gv_at.py  # Austrian USP portal
+│   └── _evergabe_online.py # German federal e-Vergabe
 ├── database/
 │   └── db.py               # SQLite operations
 ├── email_sender/

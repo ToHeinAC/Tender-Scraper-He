@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-The Tender Scraper System is a modular Python application that scrapes 22+ German-language procurement portals, stores tender data in SQLite, and sends daily email notifications via Outlook.
+The Tender Scraper System is a modular Python application that scrapes 24+ German-language procurement portals (including Austrian USP and German federal e-Vergabe), stores tender data in SQLite, and sends daily email notifications via Outlook.
 
 ## Quick Start
 
@@ -42,7 +42,12 @@ tender-scraper/
 ├── scrapers/               # Portal scraper modules
 │   ├── base.py             # BaseScraper abstract class
 │   ├── registry.py         # Scraper auto-discovery
-│   └── *.py                # Individual scrapers
+│   ├── _bge.py             # BGE portal scraper
+│   ├── _ewn.py             # EWN portal scraper
+│   ├── _vergabe_nrw.py     # Vergabe NRW scraper
+│   ├── _ausschreibung_usp_gv_at.py  # Austrian USP portal
+│   ├── _evergabe_online.py # German federal e-Vergabe
+│   └── *.py                # Other individual scrapers
 ├── database/               # Database operations
 │   ├── db.py               # Connection manager
 │   └── queries.py          # SQL queries
