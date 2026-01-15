@@ -17,11 +17,14 @@ pip install -r requirements.txt
 # Run tests
 pytest tests/ -v
 
-# Run scraper (dry run)
-python main.py --dry-run --verbose
+# List available purposes
+python main.py --list-purposes
 
-# Run scraper (full)
-python main.py
+# Run scraper for a purpose (dry run)
+python main.py --purpose BA --dry-run --verbose
+
+# Run scraper for a purpose (full)
+python main.py --purpose BA
 ```
 
 ## Project Structure
@@ -31,8 +34,11 @@ tender-scraper/
 ├── main.py                 # Entry point / orchestrator
 ├── config/                 # Configuration files
 │   ├── config.yaml         # Main configuration
-│   ├── email_config.yaml   # Email recipients
-│   └── Suchbegriffe.txt    # Search keywords
+│   ├── email_config.yaml   # Base email settings
+│   ├── Suchbegriffe_BA.txt # Keywords for purpose "BA"
+│   ├── EMail_BA.txt        # Email recipients for "BA"
+│   ├── Suchbegriffe_NORM.txt # Keywords for purpose "NORM"
+│   └── EMail_NORM.txt      # Email recipients for "NORM"
 ├── scrapers/               # Portal scraper modules
 │   ├── base.py             # BaseScraper abstract class
 │   ├── registry.py         # Scraper auto-discovery
@@ -48,10 +54,36 @@ tender-scraper/
 │   ├── keywords.py         # Keyword matching
 │   └── browser.py          # WebDriver utilities
 ├── data/                   # Runtime data (gitignored)
-│   ├── tenders.db          # SQLite database
-│   └── debug.log           # Log file
+│   ├── tenders_BA.db       # Database for "BA"
+│   ├── debug_BA.log        # Log for "BA"
+│   ├── tenders_NORM.db     # Database for "NORM"
+│   └── debug_NORM.log      # Log for "NORM"
 └── tests/                  # Test suite
 ```
+
+## Multi-Purpose Support
+
+The scraper supports multiple "purposes" - each with its own keywords, email recipients, database, and log file. Purposes are auto-discovered from `config/Suchbegriffe_*.txt` files.
+
+### Adding a New Purpose
+
+1. Create `config/Suchbegriffe_NEWPURPOSE.txt` with keywords (one per line)
+2. Create `config/EMail_NEWPURPOSE.txt` with email recipients:
+   ```yaml
+   recipients:
+     to:
+       - user@example.com
+     cc: []
+     bcc: []
+   ```
+3. Run: `python main.py --purpose NEWPURPOSE`
+
+### Purpose-Specific Files
+
+| Purpose File | Generated File |
+|--------------|----------------|
+| `config/Suchbegriffe_{PURPOSE}.txt` | `data/tenders_{PURPOSE}.db` |
+| `config/EMail_{PURPOSE}.txt` | `data/debug_{PURPOSE}.log` |
 
 ## Code Style
 
@@ -454,8 +486,9 @@ def scrape(self):
 ```yaml
 general:
   log_level: INFO
-  log_file: data/debug.log
-  database_path: data/tenders.db
+  # Note: log_file and database_path are now purpose-specific
+  # They are automatically set based on --purpose flag:
+  # --purpose BA -> data/debug_BA.log, data/tenders_BA.db
 
 scraping:
   timeout_per_scraper: 300
@@ -465,7 +498,8 @@ scraping:
   user_agent: "Mozilla/5.0..."
 
 keywords:
-  file: config/Suchbegriffe.txt
+  # Note: keywords file is now purpose-specific
+  # --purpose BA -> config/Suchbegriffe_BA.txt
   case_sensitive: false
   match_fields:
     - titel
@@ -566,7 +600,7 @@ conn.execute("PRAGMA journal_mode=WAL")
 ### Enable Debug Logging
 
 ```bash
-python main.py --verbose
+python main.py --purpose BA --verbose
 # or
 export TENDER_SCRAPER_LOG_LEVEL=DEBUG
 ```
@@ -589,8 +623,9 @@ print(f"Found {len(results)} results")
 ### Inspect Database
 
 ```bash
-sqlite3 data/tenders.db
+# Each purpose has its own database
+sqlite3 data/tenders_BA.db
 .schema
-SELECT * FROM tenders LIMIT 10;
+SELECT id, titel, email_sent, email_sent_at FROM tenders LIMIT 10;
 SELECT * FROM scrape_history ORDER BY scrape_start DESC LIMIT 5;
 ```

@@ -1,0 +1,8 @@
+recipients:
+  to:
+    - t.hein@brenk.com
+    - m.wolf@brenk.com
+    - j.pries@brenk.com
+  cc:
+    - tobias.hein@hotmail.de
+  bcc: []

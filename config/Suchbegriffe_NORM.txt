@@ -1,0 +1,35 @@
+# Tender Scraper - Search Keywords
+# =================================
+# One keyword per line
+# Lines starting with # are comments
+# Blank lines are ignored
+# Case variants are generated automatically
+
+# NORM
+NORM
+Naturally Occurring Radioactive Material
+naturally occurring radioactive material
+radon
+Radon
+Rn-222
+Rn222
+222Rn
+natürliche Radionuklide
+Uran
+Thorium
+Radium
+U-238
+U238
+238U
+Th-232
+Th232
+232Th
+Ra-226
+Ra226
+226Ra
+Geothermie
+geothermie
+Tiefengeothermie
+geothermal
+sicherheitsbetrachtung
+Strahlenschutz

@@ -6,15 +6,20 @@ Command-line interface for running tender scrapers, storing results,
 and sending email notifications.
 
 Usage:
-    python main.py [options]
+    python main.py --purpose PURPOSE [options]
 
 Options:
+    --purpose NAME      Purpose to run (e.g., BA, NORM) - REQUIRED
+    --list-purposes     List available purposes and exit
     --config PATH       Path to config file (default: config/config.yaml)
     --scrapers LIST     Comma-separated scraper names (default: all enabled)
     --skip-email        Skip sending email notification
     --dry-run           Don't save to database or send email
     --verbose           Enable debug logging
     --help              Show this help message
+
+Purposes are auto-discovered from config/Suchbegriffe_*.txt files.
+Each purpose has its own keywords, email recipients, database, and log file.
 """
 
 import argparse
@@ -39,6 +44,108 @@ from scrapers.registry import (
 )
 from utils.keywords import KeywordMatcher
 from utils.logging_config import setup_logging, get_logger
+
+
+# =============================================================================
+# Purpose Discovery and Configuration
+# =============================================================================
+
+
+def discover_purposes() -> List[str]:
+    """
+    Discover available purposes from config/Suchbegriffe_*.txt files.
+
+    Returns:
+        Sorted list of purpose names (e.g., ['BA', 'NORM'])
+    """
+    config_dir = Path("config")
+    purposes = []
+
+    for f in config_dir.glob("Suchbegriffe_*.txt"):
+        # Extract purpose name: Suchbegriffe_BA.txt -> BA
+        purpose = f.stem.replace("Suchbegriffe_", "")
+        purposes.append(purpose)
+
+    return sorted(purposes)
+
+
+def get_purpose_paths(purpose: str) -> Dict[str, str]:
+    """
+    Get all file paths for a specific purpose.
+
+    Args:
+        purpose: Purpose name (e.g., 'BA', 'NORM')
+
+    Returns:
+        Dictionary with paths for keywords_file, email_file, database_path, log_file
+    """
+    return {
+        "keywords_file": f"config/Suchbegriffe_{purpose}.txt",
+        "email_file": f"config/EMail_{purpose}.txt",
+        "database_path": f"data/tenders_{purpose}.db",
+        "log_file": f"data/debug_{purpose}.log",
+    }
+
+
+def validate_purpose(purpose: str) -> Optional[str]:
+    """
+    Validate that a purpose has all required files.
+
+    Args:
+        purpose: Purpose name to validate
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    paths = get_purpose_paths(purpose)
+
+    # Check keywords file
+    if not Path(paths["keywords_file"]).exists():
+        return f"Keywords file not found: {paths['keywords_file']}"
+
+    # Check email file
+    if not Path(paths["email_file"]).exists():
+        return f"Email config not found: {paths['email_file']}"
+
+    return None
+
+
+def load_purpose_email_config(purpose: str, base_config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Load email configuration for a specific purpose.
+
+    Merges purpose-specific recipients with base email settings.
+
+    Args:
+        purpose: Purpose name
+        base_config: Base email configuration from email_config.yaml
+
+    Returns:
+        Merged email configuration dictionary
+    """
+    paths = get_purpose_paths(purpose)
+    email_file = Path(paths["email_file"])
+
+    if not email_file.exists():
+        raise FileNotFoundError(f"Email config not found for purpose '{purpose}': {email_file}")
+
+    with open(email_file, "r", encoding="utf-8") as f:
+        purpose_config = yaml.safe_load(f)
+
+    # Start with base config and override with purpose-specific settings
+    merged = base_config.copy()
+
+    # Override recipients from purpose-specific file
+    if "recipients" in purpose_config:
+        merged["recipients"] = purpose_config["recipients"]
+
+    # Update subject template to include purpose
+    base_subject = merged.get("subject_template", "Ausschreibungen {date}")
+    if "{purpose}" not in base_subject:
+        # Add purpose to subject if not already in template
+        merged["subject_template"] = f"Ausschreibungen {purpose} - {{date}}"
+
+    return merged
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
@@ -283,6 +390,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
+        "--purpose",
+        help="Purpose to run (e.g., BA, NORM). Required unless using --list-purposes.",
+    )
+    parser.add_argument(
+        "--list-purposes",
+        action="store_true",
+        help="List available purposes and exit",
+    )
+    parser.add_argument(
         "--config",
         default="config/config.yaml",
         help="Path to config file (default: config/config.yaml)",
@@ -309,6 +425,51 @@ def main():
 
     args = parser.parse_args()
 
+    # Handle --list-purposes
+    if args.list_purposes:
+        purposes = discover_purposes()
+        if purposes:
+            print("Available purposes:")
+            for p in purposes:
+                paths = get_purpose_paths(p)
+                print(f"  {p}")
+                print(f"      Keywords: {paths['keywords_file']}")
+                print(f"      Email:    {paths['email_file']}")
+                print(f"      Database: {paths['database_path']}")
+        else:
+            print("No purposes found. Create config/Suchbegriffe_<PURPOSE>.txt files.")
+        sys.exit(0)
+
+    # Require --purpose argument
+    if not args.purpose:
+        purposes = discover_purposes()
+        print("ERROR: --purpose is required.", file=sys.stderr)
+        print("", file=sys.stderr)
+        if purposes:
+            print(f"Available purposes: {', '.join(purposes)}", file=sys.stderr)
+            print("", file=sys.stderr)
+            print("Usage examples:", file=sys.stderr)
+            print(f"  python main.py --purpose {purposes[0]}", file=sys.stderr)
+            print(f"  python main.py --purpose {purposes[0]} --dry-run", file=sys.stderr)
+        else:
+            print("No purposes found. Create config/Suchbegriffe_<PURPOSE>.txt files.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Use --list-purposes to see all available purposes.", file=sys.stderr)
+        sys.exit(1)
+
+    # Validate purpose
+    purpose = args.purpose.upper()  # Normalize to uppercase
+    error = validate_purpose(purpose)
+    if error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        purposes = discover_purposes()
+        if purposes:
+            print(f"Available purposes: {', '.join(purposes)}", file=sys.stderr)
+        sys.exit(1)
+
+    # Get purpose-specific paths
+    purpose_paths = get_purpose_paths(purpose)
+
     # Load configuration
     try:
         config = load_config(args.config)
@@ -316,11 +477,11 @@ def main():
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Setup logging
+    # Setup logging (purpose-specific log file)
     general_config = config.get("general", {})
     log_level = "DEBUG" if args.verbose else general_config.get("log_level", "INFO")
     setup_logging(
-        log_file=general_config.get("log_file", "data/debug.log"),
+        log_file=purpose_paths["log_file"],
         log_level=log_level,
         max_bytes=general_config.get("log_max_bytes", 10 * 1024 * 1024),
         backup_count=general_config.get("log_backup_count", 5),
@@ -328,26 +489,27 @@ def main():
 
     logger = get_logger(__name__)
     logger.info("=" * 60)
-    logger.info("Tender Scraper System started")
+    logger.info(f"Tender Scraper System started - Purpose: {purpose}")
     logger.info("=" * 60)
+    logger.info(f"Keywords: {purpose_paths['keywords_file']}")
+    logger.info(f"Database: {purpose_paths['database_path']}")
+    logger.info(f"Log file: {purpose_paths['log_file']}")
 
     if args.dry_run:
         logger.info("DRY RUN MODE - No database writes or emails")
 
-    # Initialize database
-    db_path = general_config.get("database_path", "data/tenders.db")
-    db = Database(db_path)
+    # Initialize database (purpose-specific database)
+    db = Database(purpose_paths["database_path"])
     db.initialize()
 
-    # Load keywords
+    # Load keywords (purpose-specific keywords file)
     keywords_config = config.get("keywords", {})
-    keywords_file = keywords_config.get("file", "config/Suchbegriffe.txt")
     exclusions = keywords_config.get("exclusions", [])
     case_sensitive = keywords_config.get("case_sensitive", False)
     match_fields = keywords_config.get("match_fields", ["titel"])
 
     matcher = KeywordMatcher(
-        keywords_file=keywords_file,
+        keywords_file=purpose_paths["keywords_file"],
         case_sensitive=case_sensitive,
         exclusions=exclusions,
     )
@@ -421,8 +583,11 @@ def main():
     send_empty = True  # Default to send even if no tenders
 
     try:
-        email_config = load_email_config(config)
+        # Load base email config, then merge with purpose-specific recipients
+        base_email_config = load_email_config(config)
+        email_config = load_purpose_email_config(purpose, base_email_config)
         send_empty = email_config.get("send_empty_report", True)
+        logger.info(f"Email recipients: {email_config.get('recipients', {}).get('to', [])}")
     except FileNotFoundError as e:
         logger.warning(f"Email config not found: {e}")
         email_enabled = False
@@ -461,7 +626,7 @@ def main():
     db.close()
 
     logger.info("=" * 60)
-    logger.info("Tender Scraper System finished")
+    logger.info(f"Tender Scraper System finished - Purpose: {purpose}")
     logger.info("=" * 60)
 
     # Exit with error code if any scrapers failed
