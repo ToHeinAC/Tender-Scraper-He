@@ -1,0 +1,5 @@
+# Placeholder for log files
+# Log files are generated per purpose:
+#   - debug_BA.log
+#   - debug_NORM.log
+#   - etc.

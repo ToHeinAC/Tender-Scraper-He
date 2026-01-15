@@ -1,0 +1,5 @@
+# Placeholder for database files
+# SQLite databases are generated per purpose:
+#   - tenders_BA.db
+#   - tenders_NORM.db
+#   - etc.

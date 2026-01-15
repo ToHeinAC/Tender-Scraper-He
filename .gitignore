@@ -1,4 +1,38 @@
+# Old reference files
 _old-solution-reference/
-data/tenders.db
-data/tenders.db-wal
-data/tenders.db-shm
+
+# Data folder - runtime generated files
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.log
+
+# Keep placeholder files
+!data/.gitkeep_db
+!data/.gitkeep_log
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude local settings (user-specific)
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+nul

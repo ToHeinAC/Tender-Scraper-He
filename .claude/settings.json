@@ -1,0 +1,20 @@
+{
+  "project": {
+    "name": "Tender Scraper System",
+    "description": "Multi-portal tender scraper with purpose-based configuration"
+  },
+  "conventions": {
+    "scrapers": {
+      "website_specific": "scrapers/_*.py (underscore prefix for portal-specific scrapers)",
+      "core_files": "scrapers/base.py, registry.py, utils.py (no underscore)"
+    },
+    "config": {
+      "keywords": "config/Suchbegriffe_{PURPOSE}.txt",
+      "email": "config/EMail_{PURPOSE}.txt"
+    },
+    "data": {
+      "database": "data/tenders_{PURPOSE}.db (gitignored)",
+      "logs": "data/debug_{PURPOSE}.log (gitignored)"
+    }
+  }
+}
