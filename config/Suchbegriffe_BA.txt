@@ -1,29 +1,160 @@
 # Tender Scraper - Search Keywords
-# =================================
+# ================================
 # One keyword per line
 # Lines starting with # are comments
 # Blank lines are ignored
 # Case variants are generated automatically
 
+# ---------------------------------
 # Data Science & Analytics
+# ---------------------------------
+data science
+data scientist
+data scientists
+
 business analytics
-machine learning
-deep learning
-data analysis
+business intelligence
+BI
+
 data analytics
+data analysis
+data analyses
 data mining
+
 Datenanalyse
-Analyse
-explorative
+Datenanalysen
+Datenaufbereitung
+Datenaufbereitungen
+Datenvisualisierung
+Datenvisualisierungen
 
-# Artificial Intelligence
-KI
+statistical analysis
+statistical analyses
+statistische Analyse
+statistische Analysen
+statistische Auswertung
+statistische Auswertungen
+
+exploratory data analysis
+explorative Datenanalyse
+
+predictive analytics
+prädiktive Analytik
+Prognosemodell
+Prognosemodelle
+
+# ---------------------------------
+# Artificial Intelligence & Machine Learning
+# ---------------------------------
+artificial intelligence
+AI
+
 künstliche Intelligenz
-künstliche
-Intelligenz
-intelligence
-Maschinelles Lernen
-maschinelles Lernen
+KI
 
-# Web & Automation
+machine learning
+maschinelles Lernen
+Maschinelles Lernen
+
+deep learning
+
+neural network
+neural networks
+neuronales Netz
+neuronale Netze
+
+reinforcement learning
+Reinforcement Learning
+
+natural language processing
+NLP
+computer vision
+Mustererkennung
+Bilderkennung
+
+KI-System
+KI-Systeme
+KI-gestützt
+KI-unterstützt
+
+# ---------------------------------
+# Data Engineering & Data Platforms
+# ---------------------------------
+data engineering
+data engineer
+data engineers
+
+data platform
+data platforms
+data warehouse
+data warehousing
+data lake
+datalake
+
+Datenplattform
+Datenplattformen
+Data Warehouse
+Data Warehouses
+Data Lake
+Data Lakes
+
+ETL
+ELT
+data pipeline
+data pipelines
+Datenpipeline
+Datenpipelines
+
+data integration
+datenintegration
+
+# ---------------------------------
+# Use-Case-/Methoden-orientierte Begriffe
+# (etwas breiter, aber meist im DS/ML-Kontext)
+# ---------------------------------
+forecasting model
+forecasting models
+Vorhersagemodell
+Vorhersagemodelle
+
+scoring model
+Scoringmodell
+Scoringmodelle
+
+anomaly detection
+Anomalieerkennung
+
+clustering
+cluster analysis
+Clusteranalyse
+Clusteranalysen
+
+classification model
+Klassifikationsmodell
+Klassifikationsmodelle
+
+# ---------------------------------
+# Web Scraping & Automation
+# ---------------------------------
 web scraping
+webscraping
+data scraping
+
+web crawler
+web crawlers
+webcrawling
+web crawling
+crawler
+crawling
+
+web harvesting
+web mining
+
+screen scraping
+screen-scraping
+
+# Automatisierung – bewusst etwas enger gefasst
+Robotic Process Automation
+RPA
+Prozessautomatisierung
+Prozessautomation

@@ -64,12 +64,13 @@ scrapers:
     - bge                  # bge.de (Federal Nuclear Waste)
     - ewn                  # ewn-gmbh.de (Nuclear Decommissioning)
     - vergabe_nrw          # evergabe.nrw.de
+    - evergabe_online      # evergabe-online.de
+    - ausschreibung_usp_gv_at  # ausschreibungen.usp.gv.at
 
   disabled:
     # Not yet implemented - migrate later
     - deutsche_evergabe    # deutsche-evergabe.de
     - deutsches_vergabeportal  # dtvp.de
-    - e_vergabe_online     # e-vergabe-online.de
     - bund_de              # bund.de
     - vergabe_rlp          # Rhineland-Palatinate
     - e_beschaffung_at     # e-beschaffung.at

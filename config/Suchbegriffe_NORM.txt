@@ -8,28 +8,44 @@
 # NORM
 NORM
 Naturally Occurring Radioactive Material
-naturally occurring radioactive material
-radon
+Technically Enhanced NORM
 Radon
+Radon-222
 Rn-222
-Rn222
-222Rn
+Radongas
 natürliche Radionuklide
+natürliche Radioaktivität
+Umweltradioaktivität
+Arbeitsplätze mit Exposition
+NORM-Arbeitsplätze
+NORM-Industrien
+Expositionsabschätzung
+Exposure
 Uran
 Thorium
 Radium
 U-238
-U238
-238U
 Th-232
-Th232
-232Th
 Ra-226
-Ra226
-226Ra
 Geothermie
-geothermie
 Tiefengeothermie
 geothermal
-sicherheitsbetrachtung
+Sicherheitsbetrachtung
 Strahlenschutz
+StrlSchV
+StrlSchG
+zirkonhaltige Stoffe
+Spezifische Aktivität
+Clearance
+NORM-Arbeitsplätze
+Radonmessung
+Gießereisand
+thorierte Schweißelektroden
+Feuerfestmaterialien
+Phosphorgips
+Wasserwerksrückstände
+Gamma-Spektrometrie
+Überwachung
+Radioaktivität
+90721600-3
+14523000-3

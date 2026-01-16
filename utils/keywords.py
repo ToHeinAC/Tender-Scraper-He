@@ -40,6 +40,19 @@ class KeywordMatcher:
         self._load_keywords()
         self._compile_patterns()
 
+    @staticmethod
+    def _should_use_word_boundaries(keyword: str) -> bool:
+        """Return True if keyword should match as a whole word/token."""
+        kw = keyword.strip()
+        return len(kw) <= 2 and kw.isalpha()
+
+    def _compile_keyword_pattern(self, keyword: str, flags: int) -> re.Pattern:
+        """Compile a regex for a keyword with special handling for short tokens."""
+        escaped = re.escape(keyword)
+        if self._should_use_word_boundaries(keyword):
+            escaped = rf"\b{escaped}\b"
+        return re.compile(escaped, flags)
+
     def _load_keywords(self) -> None:
         """Load keywords from file."""
         path = Path(self.keywords_file)
@@ -74,8 +87,7 @@ class KeywordMatcher:
         # Compile keyword patterns
         for kw in self.keywords:
             try:
-                # Escape special regex characters
-                pattern = re.compile(re.escape(kw), flags)
+                pattern = self._compile_keyword_pattern(kw, flags)
                 self.keyword_patterns.append(pattern)
             except re.error as e:
                 logger.warning(f"Invalid keyword pattern '{kw}': {e}")
@@ -83,7 +95,7 @@ class KeywordMatcher:
         # Compile exclusion patterns
         for exc in self.exclusions:
             try:
-                pattern = re.compile(re.escape(exc), flags)
+                pattern = self._compile_keyword_pattern(exc, flags)
                 self.exclusion_patterns.append(pattern)
             except re.error as e:
                 logger.warning(f"Invalid exclusion pattern '{exc}': {e}")
