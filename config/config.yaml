@@ -66,11 +66,13 @@ scrapers:
     - vergabe_nrw          # evergabe.nrw.de
     - evergabe_online      # evergabe-online.de
     - ausschreibung_usp_gv_at  # ausschreibungen.usp.gv.at
+    - vergabe_bw           # vergabe.landbw.de/NetServer (Baden-Württemberg)
+    - vergabeplattform_bw  # vergabeportal-bw.de (Baden-Württemberg alt)
+    - dtvp                 # dtvp.de (Deutsches Vergabeportal)
+    - deutsche_evergabe    # deutsche-evergabe.de
 
   disabled:
     # Not yet implemented - migrate later
-    - deutsche_evergabe    # deutsche-evergabe.de
-    - deutsches_vergabeportal  # dtvp.de
     - bund_de              # bund.de
     - vergabe_rlp          # Rhineland-Palatinate
     - e_beschaffung_at     # e-beschaffung.at
@@ -85,5 +87,3 @@ scrapers:
     - ted_etendering       # ted.europa.eu (EU)
     - gtai                 # gtai-eu-ausschreibungen.de
     - auftrag_at           # Austrian portal
-    - vergabe_bw           # Baden-Württemberg
-    - vergabeplattform_bw  # Baden-Württemberg (alt)
