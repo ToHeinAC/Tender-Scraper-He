@@ -78,12 +78,12 @@ scrapers:
     - ibau                 # ibau.de (Construction/Services)
     - vergabe_rlp          # vergabe.rlp.de (Rhineland-Palatinate)
     - gtai                 # gtai.de (EU tenders)
+    - simap_ch             # simap.ch (Swiss)
+    - ted_etendering       # ted.europa.eu (EU)
 
   disabled:
     # Not yet implemented - migrate later
     - bund_de              # bund.de
     - e_beschaffung_at     # e-beschaffung.at
-    - simap_ch             # old.simap.ch
     - evergabe             # eVergabe portal
-    - ted_etendering       # ted.europa.eu (EU)
     - auftrag_at           # Austrian portal
