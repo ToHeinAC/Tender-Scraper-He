@@ -113,7 +113,7 @@ python main.py --purpose NORM
 ```yaml
 general:
   log_level: INFO
-  database_path: data/tenders.db
+  # Note: database and log paths are purpose-specific (auto-set by --purpose flag)
 
 scraping:
   timeout_per_scraper: 300
@@ -122,14 +122,14 @@ scraping:
   delay_max: 10
 
 keywords:
-  file: config/Suchbegriffe.txt
+  # Note: keywords file is purpose-specific: config/Suchbegriffe_{PURPOSE}.txt
   case_sensitive: false
   match_fields: [titel, ausschreibungsstelle]
   exclusions: [Massenspektrometer]
 
 scrapers:
-  enabled: [bge, ewn, vergabe_nrw]
-  disabled: [ted_etendering, ...]
+  enabled: [bge, ewn, vergabe_nrw, ...]  # 24 scrapers available
+  disabled: []
 ```
 
 ### Keywords (`config/Suchbegriffe.txt`)
@@ -161,7 +161,7 @@ Short keywords (≤2 characters) use word boundaries to prevent false positives.
 **Strategy 1: First Scrape, then check** (All portals)
 - Scraper fetches all tenders from portal
 - Keywords filter results after scraping
-- Works universally across all 18+ portals
+- Works universally across all 24 portals
 
 **Strategy 2: Directly put item via URL** (2 portals only)
 - Keywords passed directly in portal search URL
@@ -189,7 +189,11 @@ tender-scraper/
 │   ├── Suchbegriffe_BA.txt # Keywords for purpose "BA"
 │   ├── EMail_BA.txt        # Email recipients for "BA"
 │   ├── Suchbegriffe_NORM.txt # Keywords for purpose "NORM"
-│   └── EMail_NORM.txt      # Email recipients for "NORM"
+│   ├── EMail_NORM.txt      # Email recipients for "NORM"
+│   ├── Suchbegriffe_ALL.txt # Keywords for purpose "ALL"
+│   ├── EMail_ALL.txt       # Email recipients for "ALL"
+│   ├── Suchbegriffe_AVE.txt # Keywords for purpose "AVE"
+│   └── EMail_AVE.txt       # Email recipients for "AVE"
 ├── scrapers/
 │   ├── base.py             # BaseScraper class
 │   ├── registry.py         # Auto-discovery
@@ -211,7 +215,11 @@ tender-scraper/
     ├── tenders_BA.db       # Database for purpose "BA"
     ├── debug_BA.log        # Log file for "BA"
     ├── tenders_NORM.db     # Database for purpose "NORM"
-    └── debug_NORM.log      # Log file for "NORM"
+    ├── debug_NORM.log      # Log file for "NORM"
+    ├── tenders_ALL.db      # Database for purpose "ALL"
+    ├── debug_ALL.log       # Log file for "ALL"
+    ├── tenders_AVE.db      # Database for purpose "AVE"
+    └── debug_AVE.log       # Log file for "AVE"
 ```
 
 ## Adding a New Scraper
@@ -269,7 +277,7 @@ SELECT id, titel, email_sent, email_sent_at FROM tenders ORDER BY id DESC LIMIT 
 | ChromeDriver error | Update Chrome or delete `~/.wdm/drivers/` cache |
 | Outlook COM error | Ensure Outlook is running |
 | Scraper timeout | Increase `timeout_per_scraper` in config |
-| No results | Check keywords in `Suchbegriffe.txt` |
+| No results | Check keywords in `Suchbegriffe_{PURPOSE}.txt` |
 
 ## License
 

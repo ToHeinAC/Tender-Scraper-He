@@ -9,11 +9,11 @@
 
 ## 1. Executive Summary
 
-The **Tender Scraper System** is an automated web scraping solution designed to monitor 22+ German-language government procurement portals and identify relevant business opportunities based on configurable keyword searches. The system aggregates tender data, stores it persistently in a SQLite database, identifies new entries, and automatically sends daily email notifications via Microsoft Outlook.
+The **Tender Scraper System** is an automated web scraping solution designed to monitor 24 German-language procurement portals (including Austrian and Swiss) and identify relevant business opportunities based on configurable keyword searches. The system aggregates tender data, stores it persistently in a SQLite database, identifies new entries, and automatically sends daily email notifications via Microsoft Outlook.
 
 The existing solution uses Jupyter notebooks (`.ipynb`) with Excel-based storage, presenting significant maintainability, reliability, and observability challenges. This refactored solution migrates to modular Python (`.py`) files with proper database storage, comprehensive logging, robust error handling, and extensive test coverage.
 
-**MVP Goal**: Deliver a production-ready, modular Python application that reliably scrapes 22+ procurement portals daily, persists data in SQLite, identifies new tenders, and sends formatted email notifications—all triggered via a single Windows Task Scheduler command.
+**MVP Goal**: Deliver a production-ready, modular Python application that reliably scrapes 24 procurement portals daily, persists data in SQLite, identifies new tenders, and sends formatted email notifications—all triggered via a single Windows Task Scheduler command.
 
 ---
 
@@ -80,7 +80,7 @@ The existing solution uses Jupyter notebooks (`.ipynb`) with Excel-based storage
 
 ### Core Functionality
 
-✅ Scrape 22+ German-language procurement portals daily
+✅ Scrape 24 procurement portals daily (German, Austrian, Swiss)
 ✅ Filter results by configurable keywords from `Suchbegriffe.txt`
 ✅ Store all tender data in persistent SQLite database (`tenders.db`)
 ✅ Detect and deduplicate entries using composite unique keys
@@ -138,7 +138,7 @@ The existing solution uses Jupyter notebooks (`.ipynb`) with Excel-based storage
 ❌ Mobile application
 ❌ REST API endpoints
 ❌ Historical data migration from Excel files
-❌ New portal integrations beyond current 22
+❌ New portal integrations beyond current 24
 ❌ Multi-language support beyond German/English
 ❌ Proxy rotation / advanced anti-detection
 
@@ -158,7 +158,7 @@ The existing solution uses Jupyter notebooks (`.ipynb`) with Excel-based storage
 
 **US-003**: As a sysadmin, I want the system to continue running despite individual scraper failures, so that partial results are still delivered.
 
-> *Example*: If `bge.de` fails, the remaining 21 scrapers still execute and email is sent with note "1 portal failed: bge"
+> *Example*: If `bge.de` fails, the remaining 23 scrapers still execute and email is sent with note "1 portal failed: bge"
 
 **US-004**: As a sysadmin, I want to configure keywords and recipients without changing code, so that I can adapt to business needs quickly.
 
@@ -218,17 +218,18 @@ The existing solution uses Jupyter notebooks (`.ipynb`) with Excel-based storage
 │  │ • base.py   │  │ • db.py     │  │ • sender.py │             │
 │  │ • bge.py    │  │ • queries.py│  │ • template. │             │
 │  │ • ewn.py    │  │             │  │   py        │             │
-│  │ • (20 more) │  │             │  │             │             │
+│  │ • (22 more) │  │             │  │             │             │
 │  └─────────────┘  └─────────────┘  └─────────────┘             │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │                      config/                              │  │
-│  │  • config.yaml  • Suchbegriffe.txt  • email_config.yaml  │  │
+│  │  • config.yaml  • Suchbegriffe_{PURPOSE}.txt             │  │
+│  │  • email_config.yaml  • EMail_{PURPOSE}.txt              │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │                       data/                               │  │
-│  │  • tenders.db (SQLite)        • debug.log                │  │
+│  │  • tenders_{PURPOSE}.db (SQLite)  • debug_{PURPOSE}.log  │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -250,8 +251,9 @@ tender-scraper/
 │
 ├── config/
 │   ├── config.yaml              # Main configuration
-│   ├── Suchbegriffe.txt         # Search keywords (one per line)
-│   └── email_config.yaml        # Email recipients
+│   ├── Suchbegriffe_{PURPOSE}.txt  # Search keywords per purpose
+│   ├── EMail_{PURPOSE}.txt      # Email recipients per purpose
+│   └── email_config.yaml        # Base email settings
 │
 ├── scrapers/
 │   ├── __init__.py
@@ -282,8 +284,8 @@ tender-scraper/
 │   └── browser.py               # WebDriver utilities
 │
 ├── data/                        # Created at runtime
-│   ├── tenders.db               # SQLite database
-│   └── debug.log                # Log file
+│   ├── tenders_{PURPOSE}.db     # SQLite database per purpose
+│   └── debug_{PURPOSE}.log      # Log file per purpose
 │
 └── tests/
     ├── conftest.py              # Pytest fixtures
@@ -340,7 +342,7 @@ tender-scraper/
 
 ### Feature 1: Portal Scraper Engine
 
-**Purpose**: Extract tender data from 22+ procurement websites
+**Purpose**: Extract tender data from 24 procurement websites
 
 **Operations**:
 - Initialize browser session (Selenium WebDriver)
@@ -358,15 +360,19 @@ tender-scraper/
 - Automatic retry on transient failures
 - Configurable timeout (default: 5 minutes)
 
-**Supported Portals** (22 active):
+**Supported Portals** (24 active):
 
 | Category | Portals |
 |----------|---------|
-| German Government | evergabe.nrw.de, deutsche-evergabe.de, dtvp.de, e-vergabe-online.de, bund.de, vergabe_RLP |
-| Austrian/Swiss | e-beschaffung.at, old.simap.ch |
-| Construction | bauportal-deutschland.de, ibau |
-| Corporate | bge.de, ewn-gmbh.de, rwe.com, fraunhofer.de, JEN, KTE |
-| Other | eVergabe, Deutsches_Vergabeportal |
+| German Government | evergabe.nrw.de, deutsche-evergabe.de, dtvp.de, e-vergabe-online.de, service.bund.de, evergabe.de, vergabe-rlp.de |
+| Baden-Württemberg | vergabe.vmpcenter.de, vergabe-bw.de |
+| Austrian | e-beschaffung.at, auftrag.at, ausschreibungen.usp.gv.at |
+| Swiss | simap.ch |
+| EU | ted.europa.eu |
+| Construction | bauportal-deutschland.de, ibau.de |
+| Corporate/Energy | bge.de, ewn-gmbh.de, rwe.com |
+| Research/Nuclear | fraunhofer.de, jen.fz-juelich.de, kte.kit.edu |
+| Trade | gtai.de |
 
 ---
 
@@ -608,7 +614,7 @@ mypy>=1.5.0
 |-------------|---------|----------------|
 | Microsoft Outlook | Email sending | Windows user identity |
 | Chrome/Firefox | Web scraping | None (local browser) |
-| 22+ Procurement Portals | Data source | None (public data) |
+| 24 Procurement Portals | Data source | None (public data) |
 
 ---
 
@@ -690,7 +696,7 @@ subject_template: "Ausschreibungen {date}"
 The MVP is successful when:
 
 1. **Reliable Daily Execution**: System runs automatically via Task Scheduler 95%+ of days without intervention
-2. **Complete Portal Coverage**: All 22 enabled scrapers execute (with individual failures logged but not blocking)
+2. **Complete Portal Coverage**: All 24 enabled scrapers execute (with individual failures logged but not blocking)
 3. **Accurate New Tender Detection**: Zero false negatives (no missed new tenders) verified by manual spot checks
 4. **Email Delivery**: Daily email received by all configured recipients
 5. **Debuggability**: Any failure can be diagnosed within 5 minutes using debug.log
@@ -698,7 +704,7 @@ The MVP is successful when:
 ### Functional Requirements Checklist
 
 ✅ Single command `python main.py` executes entire workflow
-✅ All 22 scrapers execute with proper error isolation
+✅ All 24 scrapers execute with proper error isolation
 ✅ New tenders correctly identified via database comparison
 ✅ Email sent via Outlook with formatted results
 ✅ Failures logged with timestamps and stack traces
@@ -748,10 +754,10 @@ The MVP is successful when:
 
 ### Phase 2: Scraper Migration
 
-**Goal**: Convert all 22 Jupyter notebooks to Python modules
+**Goal**: Convert all portal scrapers to Python modules
 
 **Deliverables**:
-✅ 22 scraper modules in `scrapers/` directory
+✅ 24 scraper modules in `scrapers/` directory
 ✅ Scraper registry with auto-discovery
 ✅ Unit tests for each scraper's parsing logic
 ✅ Keyword filtering implementation

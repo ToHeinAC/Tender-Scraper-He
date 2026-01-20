@@ -325,6 +325,10 @@ All scrapers in this project require Selenium (`REQUIRES_SELENIUM = True`) due t
 | **GTAI** | `_gtai.py` | JS-rendered search results, filter checkbox interactions, cookie consent, dynamic pagination |
 | **e-Beschaffung AT** | `_e_beschaffung_at.py` | Cookie consent, dynamic table loading, pagination via URL |
 | **Auftrag AT** | `_auftrag_at.py` | JavaScript-rendered content, cookie consent, dynamic search results |
+| **Bund.de** | `_bund_de.py` | Federal portal, JavaScript-rendered content, cookie consent |
+| **eVergabe** | `_evergabe.py` | JavaScript-rendered search results, dynamic pagination |
+| **SIMAP.CH** | `_simap_ch.py` | Swiss portal, form interactions, JavaScript pagination |
+| **TED eTendering** | `_ted_etendering.py` | EU portal, complex search form, dynamic content loading |
 
 #### Common Selenium Use Cases
 
