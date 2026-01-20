@@ -80,10 +80,10 @@ scrapers:
     - gtai                 # gtai.de (EU tenders)
     - simap_ch             # simap.ch (Swiss)
     - ted_etendering       # ted.europa.eu (EU)
+    - bund_de              # service.bund.de (Federal)
+    - evergabe             # evergabe.de (Public/Private)
 
   disabled:
     # Not yet implemented - migrate later
-    - bund_de              # bund.de
     - e_beschaffung_at     # e-beschaffung.at
-    - evergabe             # eVergabe portal
     - auftrag_at           # Austrian portal
