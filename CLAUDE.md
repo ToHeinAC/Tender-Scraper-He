@@ -300,6 +300,52 @@ def accept_cookies(self):
             continue
 ```
 
+### Selenium Requirements by Portal
+
+All scrapers in this project require Selenium (`REQUIRES_SELENIUM = True`) due to the nature of modern procurement portals. Below is a summary of each scraper and the specific reasons Selenium is necessary:
+
+| Portal | Scraper File | Why Selenium is Required |
+|--------|--------------|--------------------------|
+| **BGE** | `_bge.py` | Cookie consent dialog, dynamic content loading |
+| **EWN** | `_ewn.py` | JavaScript-rendered tender list, cookie consent |
+| **Vergabe NRW** | `_vergabe_nrw.py` | Form interactions for search, session-based navigation |
+| **USP Austria** | `_ausschreibung_usp_gv_at.py` | Dynamic table rendering, pagination via JS |
+| **e-Vergabe Online** | `_evergabe_online.py` | Search form submission, JavaScript pagination |
+| **Vergabe BW** | `_vergabe_bw.py` | NetServer platform requires JS for content loading |
+| **Vergabeplattform BW** | `_vergabeplattform_bw.py` | Session-based authentication, JS-rendered content |
+| **DTVP** | `_dtvp.py` | Extended search form, dynamic result loading |
+| **Deutsche eVergabe** | `_deutsche_evergabe.py` | DevExtreme grid component, AJAX pagination |
+| **RWE** | `_rwe.py` | Corporate portal with dynamic content loading |
+| **JEN Jülich** | `_jen.py` | JavaScript-rendered tender listings |
+| **KTE Karlsruhe** | `_kte.py` | Dynamic content loading, cookie consent |
+| **Fraunhofer** | `_fraunhofer.py` | NetServer-based, form interactions required |
+| **Bauportal Deutschland** | `_bauportal_deutschland.py` | Paginated results via JavaScript |
+| **iBau** | `_ibau.py` | Dynamic filtering, infinite scroll loading |
+| **Vergabe RLP** | `_vergabe_rlp.py` | VMPCenter platform, JS-based navigation |
+| **GTAI** | `_gtai.py` | JS-rendered search results, filter checkbox interactions, cookie consent, dynamic pagination |
+
+#### Common Selenium Use Cases
+
+1. **Cookie Consent Dialogs**: Most German/Austrian portals display GDPR-compliant cookie banners that must be dismissed programmatically.
+
+2. **JavaScript-Rendered Content**: Modern procurement platforms use frameworks (React, Angular, Vue) that render content client-side.
+
+3. **Form Interactions**: Search forms often require JavaScript for submission and validation.
+
+4. **Pagination**: Many portals use AJAX-based pagination without full page reloads.
+
+5. **Session Management**: Some portals require maintaining browser sessions for navigation.
+
+#### When Selenium May Not Be Needed
+
+If you're adding a new scraper, Selenium may not be required if:
+- The portal serves static HTML without JavaScript rendering
+- All data is available in the initial page response
+- No cookie consent or login is required
+- Pagination uses simple URL parameters (e.g., `?page=2`)
+
+In such cases, set `REQUIRES_SELENIUM = False` and use `requests` + `BeautifulSoup` directly.
+
 ## Database Operations
 
 ### Using the Database

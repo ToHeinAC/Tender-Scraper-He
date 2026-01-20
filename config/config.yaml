@@ -70,20 +70,20 @@ scrapers:
     - vergabeplattform_bw  # vergabeportal-bw.de (Baden-Württemberg alt)
     - dtvp                 # dtvp.de (Deutsches Vergabeportal)
     - deutsche_evergabe    # deutsche-evergabe.de
+    - rwe                  # rwe.com (Energy)
+    - jen                  # JEN Juelich (Nuclear)
+    - kte                  # KTE Karlsruhe (Nuclear)
+    - fraunhofer           # vergabe.fraunhofer.de (Research)
+    - bauportal_deutschland  # bauportal-deutschland.de
+    - ibau                 # ibau.de (Construction/Services)
+    - vergabe_rlp          # vergabe.rlp.de (Rhineland-Palatinate)
+    - gtai                 # gtai.de (EU tenders)
 
   disabled:
     # Not yet implemented - migrate later
     - bund_de              # bund.de
-    - vergabe_rlp          # Rhineland-Palatinate
     - e_beschaffung_at     # e-beschaffung.at
     - simap_ch             # old.simap.ch
-    - rwe                  # rwe.com (Energy)
-    - fraunhofer           # vergabe.fraunhofer.de (Research)
-    - jen                  # JEN portal
-    - kte                  # KTE portal
-    - bauportal_deutschland  # bauportal-deutschland.de
-    - ibau                 # ibau portal
     - evergabe             # eVergabe portal
     - ted_etendering       # ted.europa.eu (EU)
-    - gtai                 # gtai-eu-ausschreibungen.de
     - auftrag_at           # Austrian portal
