@@ -1,0 +1,14 @@
+recipients:
+  to:
+    - h.brenk@brenk.com
+    - j.pateiro@brenk.com 
+    - s.woerlen@brenk.com
+    - s.thierfeldt@brenk.com
+    - f.lehnen@brenk.com
+    - p.schmitt@brenk.com
+    - a.schmidt@brenk.com
+    - a.kummer@brenk.com
+    - o.nitzsche@brenk.com
+  cc:
+    - t.hein@brenk.com
+  bcc: []

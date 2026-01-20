@@ -1,0 +1,40 @@
+# Tender Scraper - Search Keywords
+# =================================
+# One keyword per line
+# Lines starting with # are comments
+# Blank lines are ignored
+# Case variants are generated automatically
+
+strahlenschutz
+freigabe
+kerntechnik
+atomgesetz
+stilllegung
+sicherheitsbetrachtung
+spektro
+rueckbau
+rückbau
+nuklear
+radioaktiv
+strahlung
+endlager
+bergbau
+deponierung
+zyklotron
+beschleuniger
+radiation protection
+nuclear technology
+nuclear medicine
+decontamination
+decommission
+decom
+spectro
+nuclear
+radioactiv
+repository
+mining
+cyclotron
+accelerator
+dismantling
+analyse
+abfälle

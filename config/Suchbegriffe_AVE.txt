@@ -1,0 +1,37 @@
+# Tender Scraper - Search Keywords
+# =================================
+# One keyword per line
+# Lines starting with # are comments
+# Blank lines are ignored
+# Case variants are generated automatically
+
+Energiemanagement
+Energiemanagementsystem
+Antragsstellung
+AwSV Bewertung
+Bodensch
+Immissionsschutzbeauftrag
+ISB
+Abfallbeauftrag
+AbfB
+Gewässerschutzbeauftrag
+GSB
+Gefahrgutbeauftrag
+Umweltgenehmigung
+Genehmigung
+BImSchV
+BImSchG
+Schornsteinh
+Nachhaltigkeit
+Umweltmanagement
+Baubegleitung
+Bauüberwachung
+Umweltbaubegleitung
+Umweltfachliche
+Kartierung
+Fauna
+faunistisch
+Bestandserhebung
+Monitoring
+Herpetologie
+Reptilien

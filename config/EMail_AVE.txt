@@ -1,0 +1,6 @@
+recipients:
+  to:
+    - p.schmitt@brenk.com
+  cc:
+    - tobias.hein@hotmail.de
+  bcc: []
