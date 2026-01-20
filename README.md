@@ -141,6 +141,33 @@ Nuklear
 ...
 ```
 
+## Keyword Matching Behavior
+
+### How Keywords Match
+
+Each keyword in `Suchbegriffe_{PURPOSE}.txt` automatically matches:
+
+| Keyword | Matches | Why |
+|---------|---------|-----|
+| `Rückstand` | `Rückstand` | Exact match |
+| `Rückstand` | `rückstand` | Lowercase first letter variant |
+| `Rückstand` | `Produktionsrückstand` | Keyword at end of compound word |
+| `Rückstand` | `Rückstandskonzept` | Keyword at start of compound word |
+
+Short keywords (≤2 characters) use word boundaries to prevent false positives.
+
+### Matching Strategies
+
+**Strategy 1: First Scrape, then check** (All portals)
+- Scraper fetches all tenders from portal
+- Keywords filter results after scraping
+- Works universally across all 18+ portals
+
+**Strategy 2: Directly put item via URL** (2 portals only)
+- Keywords passed directly in portal search URL
+- Only supported by: USP Austria (`q=`), Fraunhofer (`Searchkey=`)
+- More efficient but portal-specific
+
 ### Email (`config/email_config.yaml`)
 
 ```yaml

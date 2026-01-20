@@ -98,8 +98,6 @@ Data Warehouses
 Data Lake
 Data Lakes
 
-ETL
-ELT
 data pipeline
 data pipelines
 Datenpipeline
@@ -155,6 +153,5 @@ screen-scraping
 
 # Automatisierung – bewusst etwas enger gefasst
 Robotic Process Automation
-RPA
 Prozessautomatisierung
 Prozessautomation

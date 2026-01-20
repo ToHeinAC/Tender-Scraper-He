@@ -42,19 +42,26 @@ class AusschreibungUSPScraper(BaseScraper):
         ".cookie-consent-accept",
     ]
 
-    def _build_search_url(self, from_date: str, to_date: str) -> str:
+    def _build_search_url(
+        self, from_date: str, to_date: str, keyword: str = ""
+    ) -> str:
         """
-        Build the search URL with date filters.
+        Build the search URL with date filters and optional keyword.
+
+        This portal supports "Directly put item" strategy via URL parameter:
+        - q={keyword} for keyword search
+        - q= (empty) for all tenders
 
         Args:
             from_date: Start date (YYYY-MM-DD)
             to_date: End date (YYYY-MM-DD)
+            keyword: Optional search keyword for URL-based filtering
 
         Returns:
             Full search URL
         """
         params = {
-            "q": "",
+            "q": keyword,  # Empty string = all tenders, keyword = filtered search
             "loaded": "true",
             "orderColumn": "2",
             "orderDir": "desc",
@@ -64,14 +71,27 @@ class AusschreibungUSPScraper(BaseScraper):
         }
         return f"{self.PORTAL_URL}?{urlencode(params)}"
 
-    def scrape(self) -> List[TenderResult]:
+    def scrape(self, keywords: List[str] = None) -> List[TenderResult]:
         """
         Execute scraping logic for Austrian USP portal.
+
+        Supports two scraping strategies:
+        1. "First Scrape, then check" (default): Fetch all tenders, filter later
+           - Called with no keywords: scrape()
+        2. "Directly put item": Search portal with each keyword via URL
+           - Called with keywords: scrape(keywords=["Rückbau", "Dekontamination"])
+           - Each keyword is searched via q={keyword} URL parameter
+
+        Args:
+            keywords: Optional list of keywords for URL-based search.
+                      If None, fetches all tenders (strategy 1).
+                      If provided, searches for each keyword (strategy 2).
 
         Returns:
             List of TenderResult objects
         """
         all_results = []
+        seen_ids = set()  # Deduplicate results across keyword searches
 
         try:
             # Calculate date range
@@ -79,34 +99,55 @@ class AusschreibungUSPScraper(BaseScraper):
             from_date = (today - timedelta(days=self.DEFAULT_DATE_RANGE_DAYS)).strftime("%Y-%m-%d")
             to_date = today.strftime("%Y-%m-%d")
 
-            # Build and navigate to search URL
-            search_url = self._build_search_url(from_date, to_date)
-            self.logger.info(f"Navigating to: {search_url}")
-            self.driver.get(search_url)
+            # Determine search terms: all tenders (empty keyword) or specific keywords
+            search_terms = keywords if keywords else [""]
 
-            # Accept cookies if present
-            time.sleep(2)
-            self.accept_cookies()
-            time.sleep(2)
+            for idx, keyword in enumerate(search_terms):
+                if keyword:
+                    self.logger.info(f"Searching for keyword '{keyword}' ({idx + 1}/{len(search_terms)})")
 
-            # Wait for table to load
-            try:
-                WebDriverWait(self.driver, 15).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "table.table, .tender-list, #tenderTable"))
-                )
-            except TimeoutException:
-                self.logger.warning("Table not found with primary selectors, trying alternatives")
-                time.sleep(3)
+                # Build and navigate to search URL
+                search_url = self._build_search_url(from_date, to_date, keyword)
+                self.logger.info(f"Navigating to: {search_url}")
+                self.driver.get(search_url)
 
-            # Get page HTML
-            html = self.driver.page_source
-            soup = BeautifulSoup(html, "lxml")
+                # Accept cookies only on first page
+                if idx == 0:
+                    time.sleep(2)
+                    self.accept_cookies()
+                time.sleep(2)
 
-            # Parse results
-            results = self._parse_results(soup)
-            all_results.extend(results)
+                # Wait for table to load
+                try:
+                    WebDriverWait(self.driver, 15).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "table.table, .tender-list, #tenderTable"))
+                    )
+                except TimeoutException:
+                    self.logger.warning("Table not found with primary selectors, trying alternatives")
+                    time.sleep(3)
 
-            self.logger.info(f"Found {len(all_results)} tenders")
+                # Get page HTML
+                html = self.driver.page_source
+                soup = BeautifulSoup(html, "lxml")
+
+                # Parse results
+                results = self._parse_results(soup)
+
+                # Deduplicate and optionally tag with keyword
+                for result in results:
+                    if result.vergabe_id and result.vergabe_id in seen_ids:
+                        continue
+                    if result.vergabe_id:
+                        seen_ids.add(result.vergabe_id)
+                    # Tag result with keyword if using strategy 2
+                    if keyword:
+                        result.suchbegriff = keyword
+                    all_results.append(result)
+
+                if keyword:
+                    self.logger.info(f"Found {len(results)} tenders for '{keyword}'")
+
+            self.logger.info(f"Found {len(all_results)} total tenders (deduplicated)")
 
         except Exception as e:
             self.logger.error(f"USP Austria scraping failed: {e}")

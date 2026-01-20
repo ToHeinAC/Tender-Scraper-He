@@ -2,6 +2,27 @@
 Keyword loading and matching for Tender Scraper System.
 
 Handles loading keywords from file and matching against tender data.
+
+## Keyword Matching Behavior
+
+Each keyword automatically matches:
+- Exact match: "Rückstand" matches "Rückstand"
+- Lowercase first letter: "Rückstand" matches "rückstand"
+- Full lowercase/uppercase: "Rückstand" matches "RÜCKSTAND"
+- Compound words (substring): "Rückstand" matches "Produktionsrückstand", "Rückstandskonzept"
+
+Keywords ≤2 characters use word boundaries to prevent false positives.
+
+## Two Scraping Strategies
+
+**Strategy 1: "First Scrape, then check"** (All portals)
+- Scrapers return all tenders with suchbegriff=None
+- KeywordMatcher filters results in main.py
+
+**Strategy 2: "Directly put item via URL"** (2 portals only)
+- Keywords passed directly in portal search URL
+- Supported: USP Austria (q=), Fraunhofer (Searchkey=)
+- Use get_search_terms() to get original keywords for URL parameters
 """
 
 import logging
@@ -13,7 +34,14 @@ logger = logging.getLogger(__name__)
 
 
 class KeywordMatcher:
-    """Handles keyword loading and matching for tender filtering."""
+    """
+    Handles keyword loading and matching for tender filtering.
+
+    Matching behavior:
+    - Case variants are generated automatically (lowercase first letter, full lowercase, uppercase)
+    - Keywords >2 chars match as substrings (no word boundaries) for German compound words
+    - Keywords ≤2 chars use word boundaries to prevent false positives
+    """
 
     def __init__(
         self,
@@ -33,7 +61,8 @@ class KeywordMatcher:
         self.case_sensitive = case_sensitive
         self.exclusions = exclusions or []
 
-        self.keywords: Set[str] = set()
+        self._original_keywords: Set[str] = set()  # Original keywords from file
+        self.keywords: Set[str] = set()  # Keywords with case variants
         self.keyword_patterns: List[re.Pattern] = []
         self.exclusion_patterns: List[re.Pattern] = []
 
@@ -42,9 +71,48 @@ class KeywordMatcher:
 
     @staticmethod
     def _should_use_word_boundaries(keyword: str) -> bool:
-        """Return True if keyword should match as a whole word/token."""
+        """
+        Return True if keyword should match as a whole word/token.
+
+        Short keywords (≤2 chars, alphabetic only) use word boundaries
+        to prevent false positives (e.g., "KI" shouldn't match "Kinder").
+        """
         kw = keyword.strip()
         return len(kw) <= 2 and kw.isalpha()
+
+    @staticmethod
+    def _generate_case_variants(keyword: str) -> Set[str]:
+        """
+        Generate case variants for a keyword to enable flexible matching.
+
+        For keyword "Rückstand", generates:
+        - "Rückstand" (original)
+        - "rückstand" (lowercase first letter)
+        - "RÜCKSTAND" (all uppercase)
+
+        Combined with NO word boundaries for keywords >2 chars, this enables:
+        - Exact match: "Rückstand"
+        - Lowercase: "rückstand"
+        - Compound words: "Produktionsrückstand", "Rückstandskonzept"
+
+        Args:
+            keyword: Original keyword from config file
+
+        Returns:
+            Set of case variants
+        """
+        variants = {keyword}
+        if keyword:
+            # Lowercase first letter variant (common in German compound words)
+            if len(keyword) > 1:
+                variants.add(keyword[0].lower() + keyword[1:])
+            else:
+                variants.add(keyword.lower())
+            # Full lowercase (covers compound word matching)
+            variants.add(keyword.lower())
+            # Full uppercase
+            variants.add(keyword.upper())
+        return variants
 
     def _compile_keyword_pattern(self, keyword: str, flags: int) -> re.Pattern:
         """Compile a regex for a keyword with special handling for short tokens."""
@@ -54,7 +122,12 @@ class KeywordMatcher:
         return re.compile(escaped, flags)
 
     def _load_keywords(self) -> None:
-        """Load keywords from file."""
+        """
+        Load keywords from file and generate case variants.
+
+        Original keywords are stored in _original_keywords for get_search_terms().
+        Expanded keywords with case variants are stored in self.keywords for matching.
+        """
         path = Path(self.keywords_file)
 
         if not path.exists():
@@ -67,18 +140,20 @@ class KeywordMatcher:
                 # Skip empty lines and comments
                 if not line or line.startswith("#"):
                     continue
-                self.keywords.add(line)
+                self._original_keywords.add(line)
 
         # Generate case variants if not case-sensitive
         if not self.case_sensitive:
-            variants = set()
-            for kw in self.keywords:
-                variants.add(kw.lower())
-                variants.add(kw.capitalize())
-                variants.add(kw.upper())
-            self.keywords.update(variants)
+            for kw in self._original_keywords:
+                variants = self._generate_case_variants(kw)
+                self.keywords.update(variants)
+        else:
+            self.keywords = self._original_keywords.copy()
 
-        logger.info(f"Loaded {len(self.keywords)} keywords from {self.keywords_file}")
+        logger.info(
+            f"Loaded {len(self._original_keywords)} keywords "
+            f"({len(self.keywords)} with variants) from {self.keywords_file}"
+        )
 
     def _compile_patterns(self) -> None:
         """Compile regex patterns for efficient matching."""
@@ -182,6 +257,23 @@ class KeywordMatcher:
                 if match:
                     return match
         return None
+
+    def get_search_terms(self) -> List[str]:
+        """
+        Get original keywords for portal search queries ("Directly put item" strategy).
+
+        Returns keywords as-is from the config file, suitable for URL parameters
+        on portals that support keyword search via URL:
+        - USP Austria: q={keyword}
+        - Fraunhofer: Searchkey={keyword}
+
+        These are the original keywords without case variants, as the portal
+        search typically handles case-insensitivity on its own.
+
+        Returns:
+            List of original keywords from config file
+        """
+        return list(self._original_keywords)
 
 
 def load_keywords(filepath: str) -> List[str]:

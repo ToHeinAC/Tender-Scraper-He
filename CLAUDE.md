@@ -346,6 +346,57 @@ If you're adding a new scraper, Selenium may not be required if:
 
 In such cases, set `REQUIRES_SELENIUM = False` and use `requests` + `BeautifulSoup` directly.
 
+### Keyword Matching Implementation
+
+#### Matching Behavior
+
+Keywords are matched with these rules:
+1. **Case variants generated**: Original, lowercase first letter, all lowercase, all uppercase
+2. **Substring matching**: Keywords > 2 chars match within compound words (no word boundaries)
+3. **Short keyword protection**: Keywords ≤ 2 chars use word boundaries to prevent false positives
+
+Example: Keyword "Rückstand" matches:
+- "Rückstand" (exact)
+- "rückstand" (lowercase)
+- "Produktionsrückstand" (substring at end)
+- "Rückstandskonzept" (substring at start)
+
+#### Two Scraping Strategies
+
+**Strategy 1: "First Scrape, then check"** (Recommended, all portals)
+- Scraper returns all tenders with `suchbegriff=None`
+- `filter_by_keywords()` in `main.py` filters results
+- Matching keyword stored in `suchbegriff` field
+
+**Strategy 2: "Directly put item"** (URL-based, limited portals)
+
+Only 2 portals support keyword search via URL:
+
+| Portal | Parameter | Implementation |
+|--------|-----------|----------------|
+| USP Austria | `q={keyword}` | `_ausschreibung_usp_gv_at.py` |
+| Fraunhofer | `Searchkey={keyword}` | `_fraunhofer.py` |
+
+When adding a new scraper, check if the portal supports URL-based search.
+If yes, implement the "Directly put item" strategy for efficiency.
+
+#### Using KeywordMatcher
+
+```python
+from utils.keywords import KeywordMatcher
+
+# Create matcher from keywords file
+matcher = KeywordMatcher("config/Suchbegriffe_BA.txt")
+
+# Check if text matches any keyword (Strategy 1)
+if matcher.matches(tender.titel):
+    keyword = matcher.get_matching_keyword(tender.titel)
+
+# Get original keywords for URL-based search (Strategy 2)
+keywords = matcher.get_search_terms()
+scraper.scrape(keywords=keywords)
+```
+
 ## Database Operations
 
 ### Using the Database
