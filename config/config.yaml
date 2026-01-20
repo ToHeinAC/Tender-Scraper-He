@@ -84,6 +84,7 @@ scrapers:
     - evergabe             # evergabe.de (Public/Private)
     - e_beschaffung_at     # e-beschaffung.at (Austrian)
     - auftrag_at           # auftrag.at (Austrian)
+    - germanytenders       # germanytenders.com (German tender aggregator)
 
   disabled:
     # All scrapers currently implemented
