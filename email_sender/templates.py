@@ -83,6 +83,12 @@ Tender Scraper System v1.0
             timestamp=timestamp.strftime("%d.%m.%Y %H:%M:%S")
         ))
 
+        # Count tenders by portal from the actual tenders list
+        tenders_by_portal: Dict[str, int] = {}
+        for tender in tenders:
+            portal = tender.get("portal", "unknown")
+            tenders_by_portal[portal] = tenders_by_portal.get(portal, 0) + 1
+
         # Portal status summary
         total = len(portal_status)
         success = sum(1 for p in portal_status.values() if p.get("success", False))
@@ -94,10 +100,11 @@ Tender Scraper System v1.0
             failed=failed,
         ))
 
-        # List each portal
+        # List each portal - use actual tender count from tenders list
         for portal, status in sorted(portal_status.items()):
             if status.get("success", False):
-                records = status.get("records_new", 0)
+                # Use count from actual tenders list, not from scraper status
+                records = tenders_by_portal.get(portal, 0)
                 parts.append(f"✓ {portal} - {records} Ergebnisse")
             else:
                 error = status.get("error", "Unbekannter Fehler")

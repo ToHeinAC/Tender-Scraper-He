@@ -52,6 +52,86 @@ class BundDeScraper(BaseScraper):
         "button[data-testid='cookie-accept']",
     ]
 
+    # Regex patterns for dates - supports both DD.MM.YY and DD.MM.YYYY formats
+    DATE_PATTERN_2DIGIT = r"(\d{1,2}\.\d{1,2}\.\d{2})"
+    DATE_PATTERN_4DIGIT = r"(\d{1,2}\.\d{1,2}\.\d{4})"
+    DATE_PATTERN_ANY = r"(\d{1,2}\.\d{1,2}\.\d{2,4})"
+
+    def _extract_metadata_from_text(self, text: str) -> dict:
+        """
+        Extract structured metadata from concatenated text.
+
+        Bund.de often returns text like:
+        "AusschreibungTitle... Vergabestelle OrgName Veröffentlicht 20.01.26 Angebotsfrist 19.02.26"
+
+        This method extracts the individual fields.
+
+        Args:
+            text: The concatenated text to parse
+
+        Returns:
+            Dict with keys: titel, vergabestelle, veroeffentlicht, angebotsfrist
+        """
+        result = {
+            "titel": "",
+            "vergabestelle": "",
+            "veroeffentlicht": "",
+            "angebotsfrist": "",
+        }
+
+        if not text:
+            return result
+
+        # Work with the text
+        working_text = text
+
+        # Extract Angebotsfrist (deadline) - look for "Angebotsfrist" followed by date
+        angebotsfrist_match = re.search(
+            r"Angebotsfrist\s*" + self.DATE_PATTERN_ANY,
+            working_text,
+            re.IGNORECASE
+        )
+        if angebotsfrist_match:
+            result["angebotsfrist"] = angebotsfrist_match.group(1)
+            # Remove this part from the text
+            working_text = working_text[:angebotsfrist_match.start()] + working_text[angebotsfrist_match.end():]
+
+        # Extract Veröffentlicht (published date)
+        veroeffentlicht_match = re.search(
+            r"Veröffentlicht\s*" + self.DATE_PATTERN_ANY,
+            working_text,
+            re.IGNORECASE
+        )
+        if veroeffentlicht_match:
+            result["veroeffentlicht"] = veroeffentlicht_match.group(1)
+            working_text = working_text[:veroeffentlicht_match.start()] + working_text[veroeffentlicht_match.end():]
+
+        # Extract Vergabestelle (awarding authority)
+        # This comes after "Vergabestelle" and before "Veröffentlicht" or end of remaining text
+        vergabestelle_match = re.search(
+            r"Vergabestelle\s+(.+?)(?:\s*$)",
+            working_text,
+            re.IGNORECASE
+        )
+        if vergabestelle_match:
+            vergabestelle = vergabestelle_match.group(1).strip()
+            # Clean up any trailing ellipsis, pipes, or special characters (with optional spaces between)
+            vergabestelle = re.sub(r'[\s…\.\|]+$', '', vergabestelle)
+            result["vergabestelle"] = vergabestelle
+            working_text = working_text[:vergabestelle_match.start()]
+
+        # The remaining text is the title - clean it up
+        titel = working_text.strip()
+        # Remove "Ausschreibung" prefix if present
+        titel = re.sub(r'^Ausschreibung\s*', '', titel, flags=re.IGNORECASE)
+        # Clean up trailing ellipsis or special chars
+        titel = re.sub(r'\s*[…]+\s*$', '', titel)
+        titel = titel.strip()
+
+        result["titel"] = titel
+
+        return result
+
     def scrape(self) -> List[TenderResult]:
         """
         Execute scraping logic for service.bund.de portal.
@@ -275,18 +355,23 @@ class BundDeScraper(BaseScraper):
             TenderResult object or None
         """
         try:
-            titel = ""
             link = ""
             vergabe_id = ""
-            ausschreibungsstelle = ""
-            veroeffentlicht = ""
-            naechste_frist = ""
 
-            # Find title from heading
+            # Get the full text content of the item for metadata extraction
+            full_text = clean_text(item.get_text())
+
+            # Extract structured metadata from the concatenated text
+            metadata = self._extract_metadata_from_text(full_text)
+
+            titel = metadata["titel"]
+            ausschreibungsstelle = metadata["vergabestelle"]
+            veroeffentlicht = metadata["veroeffentlicht"]
+            naechste_frist = metadata["angebotsfrist"]
+
+            # Find link from heading or direct link
             title_elem = item.select_one("h2, h3, h4, .headline, .title")
             if title_elem:
-                titel = clean_text(title_elem.get_text())
-                # Check for link in title
                 link_in_title = title_elem.find("a")
                 if link_in_title and link_in_title.has_attr("href"):
                     link = urljoin(self.BASE_URL, link_in_title["href"])
@@ -296,31 +381,12 @@ class BundDeScraper(BaseScraper):
                 link_elem = item.select_one("a[href]")
                 if link_elem:
                     link = urljoin(self.BASE_URL, link_elem["href"])
-                    if not titel:
-                        titel = clean_text(link_elem.get_text())
-
-            # Find metadata
-            meta_elems = item.select(".meta, .info, .details, p, span")
-            for meta in meta_elems:
-                text = clean_text(meta.get_text())
-
-                # Look for dates
-                date_match = re.search(r"(\d{1,2}\.\d{1,2}\.\d{4})", text)
-                if date_match:
-                    if "frist" in text.lower() or "ende" in text.lower():
-                        naechste_frist = date_match.group(1)
-                    elif not veroeffentlicht:
-                        veroeffentlicht = date_match.group(1)
-
-                # Look for organization
-                if any(kw in text.lower() for kw in ["vergabestelle", "auftraggeber", "behörde"]):
-                    ausschreibungsstelle = text
 
             # Extract ID from link
             if link:
-                id_match = re.search(r"/(\d{5,})[./]|[?&]id=(\d+)", link)
+                id_match = re.search(r"/(\d{5,})[./]|[?&]id=(\d+)|/([A-Z]?\d{6,})\.", link)
                 if id_match:
-                    vergabe_id = id_match.group(1) or id_match.group(2)
+                    vergabe_id = id_match.group(1) or id_match.group(2) or id_match.group(3)
 
             # Skip if no valid title
             if not titel or len(titel) < 5:
@@ -360,35 +426,28 @@ class BundDeScraper(BaseScraper):
             TenderResult object or None
         """
         try:
-            titel = ""
             link = ""
             vergabe_id = ""
-            veroeffentlicht = ""
-            naechste_frist = ""
 
-            # Find link and title
+            # Get the full text content and extract metadata
+            full_text = clean_text(item.get_text())
+            metadata = self._extract_metadata_from_text(full_text)
+
+            titel = metadata["titel"]
+            ausschreibungsstelle = metadata["vergabestelle"]
+            veroeffentlicht = metadata["veroeffentlicht"]
+            naechste_frist = metadata["angebotsfrist"]
+
+            # Find link
             link_elem = item.find("a")
             if link_elem:
                 link = urljoin(self.BASE_URL, link_elem.get("href", ""))
-                titel = clean_text(link_elem.get_text())
-
-            # If no link, try to get text directly
-            if not titel:
-                titel = clean_text(item.get_text())[:200]
-
-            # Extract dates from text
-            item_text = item.get_text()
-            dates = re.findall(r"(\d{1,2}\.\d{1,2}\.\d{4})", item_text)
-            if dates:
-                veroeffentlicht = dates[0]
-                if len(dates) > 1:
-                    naechste_frist = dates[1]
 
             # Extract ID
             if link:
-                id_match = re.search(r"/(\d{5,})[./]|[?&]id=(\d+)", link)
+                id_match = re.search(r"/(\d{5,})[./]|[?&]id=(\d+)|/([A-Z]?\d{6,})\.", link)
                 if id_match:
-                    vergabe_id = id_match.group(1) or id_match.group(2)
+                    vergabe_id = id_match.group(1) or id_match.group(2) or id_match.group(3)
 
             if not titel or len(titel) < 5:
                 return None
@@ -400,7 +459,7 @@ class BundDeScraper(BaseScraper):
                 vergabe_id=vergabe_id,
                 link=link,
                 titel=titel,
-                ausschreibungsstelle="",
+                ausschreibungsstelle=ausschreibungsstelle,
                 ausfuehrungsort="",
                 ausschreibungsart="",
                 naechste_frist=naechste_frist,
@@ -426,40 +485,33 @@ class BundDeScraper(BaseScraper):
             if len(cells) < 2:
                 return None
 
-            titel = ""
             link = ""
             vergabe_id = ""
-            ausschreibungsstelle = ""
-            veroeffentlicht = ""
-            naechste_frist = ""
 
+            # Get full text and extract metadata
+            full_text = clean_text(row.get_text())
+            metadata = self._extract_metadata_from_text(full_text)
+
+            titel = metadata["titel"]
+            ausschreibungsstelle = metadata["vergabestelle"]
+            veroeffentlicht = metadata["veroeffentlicht"]
+            naechste_frist = metadata["angebotsfrist"]
+
+            # Look for link in cells
             for cell in cells:
-                text = clean_text(cell.get_text())
-
-                # Look for link
                 link_elem = cell.find("a")
                 if link_elem:
-                    candidate_title = clean_text(link_elem.get_text())
-                    if len(candidate_title) > len(titel):
-                        titel = candidate_title
-                        link = urljoin(self.BASE_URL, link_elem.get("href", ""))
-
-                # Look for dates
-                date_match = re.search(r"(\d{1,2}\.\d{1,2}\.\d{4})", text)
-                if date_match:
-                    if not veroeffentlicht:
-                        veroeffentlicht = date_match.group(1)
-                    elif not naechste_frist:
-                        naechste_frist = date_match.group(1)
+                    link = urljoin(self.BASE_URL, link_elem.get("href", ""))
+                    break
 
             if not titel or len(titel) < 5:
                 return None
 
             # Extract ID
             if link:
-                id_match = re.search(r"/(\d{5,})[./]|[?&]id=(\d+)", link)
+                id_match = re.search(r"/(\d{5,})[./]|[?&]id=(\d+)|/([A-Z]?\d{6,})\.", link)
                 if id_match:
-                    vergabe_id = id_match.group(1) or id_match.group(2)
+                    vergabe_id = id_match.group(1) or id_match.group(2) or id_match.group(3)
 
             return TenderResult(
                 portal=self.PORTAL_NAME,
@@ -490,8 +542,16 @@ class BundDeScraper(BaseScraper):
             TenderResult object or None
         """
         try:
-            titel = clean_text(link_elem.get_text())
+            full_text = clean_text(link_elem.get_text())
             link = urljoin(self.BASE_URL, link_elem.get("href", ""))
+
+            # Extract metadata from concatenated text
+            metadata = self._extract_metadata_from_text(full_text)
+
+            titel = metadata["titel"]
+            ausschreibungsstelle = metadata["vergabestelle"]
+            veroeffentlicht = metadata["veroeffentlicht"]
+            naechste_frist = metadata["angebotsfrist"]
 
             if not titel or len(titel) < 5:
                 return None
@@ -502,9 +562,9 @@ class BundDeScraper(BaseScraper):
                 return None
 
             vergabe_id = ""
-            id_match = re.search(r"/(\d{5,})[./]|[?&]id=(\d+)", link)
+            id_match = re.search(r"/(\d{5,})[./]|[?&]id=(\d+)|/([A-Z]?\d{6,})\.", link)
             if id_match:
-                vergabe_id = id_match.group(1) or id_match.group(2)
+                vergabe_id = id_match.group(1) or id_match.group(2) or id_match.group(3)
 
             return TenderResult(
                 portal=self.PORTAL_NAME,
@@ -513,11 +573,11 @@ class BundDeScraper(BaseScraper):
                 vergabe_id=vergabe_id,
                 link=link,
                 titel=titel,
-                ausschreibungsstelle="",
+                ausschreibungsstelle=ausschreibungsstelle,
                 ausfuehrungsort="",
                 ausschreibungsart="",
-                naechste_frist="",
-                veroeffentlicht="",
+                naechste_frist=naechste_frist,
+                veroeffentlicht=veroeffentlicht,
             )
         except Exception as e:
             self.logger.warning(f"Failed to parse link item: {e}")
