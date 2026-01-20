@@ -82,8 +82,8 @@ scrapers:
     - ted_etendering       # ted.europa.eu (EU)
     - bund_de              # service.bund.de (Federal)
     - evergabe             # evergabe.de (Public/Private)
+    - e_beschaffung_at     # e-beschaffung.at (Austrian)
+    - auftrag_at           # auftrag.at (Austrian)
 
   disabled:
-    # Not yet implemented - migrate later
-    - e_beschaffung_at     # e-beschaffung.at
-    - auftrag_at           # Austrian portal
+    # All scrapers currently implemented

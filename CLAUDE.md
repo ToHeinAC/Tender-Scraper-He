@@ -323,6 +323,8 @@ All scrapers in this project require Selenium (`REQUIRES_SELENIUM = True`) due t
 | **iBau** | `_ibau.py` | Dynamic filtering, infinite scroll loading |
 | **Vergabe RLP** | `_vergabe_rlp.py` | VMPCenter platform, JS-based navigation |
 | **GTAI** | `_gtai.py` | JS-rendered search results, filter checkbox interactions, cookie consent, dynamic pagination |
+| **e-Beschaffung AT** | `_e_beschaffung_at.py` | Cookie consent, dynamic table loading, pagination via URL |
+| **Auftrag AT** | `_auftrag_at.py` | JavaScript-rendered content, cookie consent, dynamic search results |
 
 #### Common Selenium Use Cases
 
