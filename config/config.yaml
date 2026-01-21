@@ -38,7 +38,6 @@ keywords:
   # Fields to match against
   match_fields:
     - titel
-    - ausschreibungsstelle
 
   # Keywords to exclude (even if other keywords match)
   exclusions:
