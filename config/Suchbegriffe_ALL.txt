@@ -22,9 +22,8 @@ bergbau
 deponierung
 zyklotron
 beschleuniger
-radiation protection
-nuclear technology
-nuclear medicine
+radiation
+nuclear
 decontamination
 decommission
 decom

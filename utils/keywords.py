@@ -13,6 +13,23 @@ Each keyword automatically matches:
 
 Keywords ≤2 characters use word boundaries to prevent false positives.
 
+## Explicit Space Markers for Boundary Control
+
+You can add explicit space markers to keywords for precise boundary matching:
+- ` KI ` → match "KI" only as standalone word (whitespace or string boundaries on both sides)
+- ` KI` → match "KI" only when preceded by whitespace or at start of string
+- `KI ` → match "KI" only when followed by whitespace or at end of string
+- `KI` (no spaces) → default behavior (word boundaries for short keywords, substring for longer)
+
+Example in keywords file:
+```
+# Standard matching
+machine learning
+
+# Explicit boundary matching (note the spaces)
+ KI
+```
+
 ## Two Scraping Strategies
 
 **Strategy 1: "First Scrape, then check"** (All portals)
@@ -41,6 +58,12 @@ class KeywordMatcher:
     - Case variants are generated automatically (lowercase first letter, full lowercase, uppercase)
     - Keywords >2 chars match as substrings (no word boundaries) for German compound words
     - Keywords ≤2 chars use word boundaries to prevent false positives
+
+    Explicit space markers for boundary control:
+    - ` KI ` → standalone word only (surrounded by whitespace/string boundaries)
+    - ` KI` → preceded by whitespace or at start of string
+    - `KI ` → followed by whitespace or at end of string
+    - `KI` (no spaces) → default behavior based on length
     """
 
     def __init__(
@@ -95,31 +118,72 @@ class KeywordMatcher:
         - Lowercase: "rückstand"
         - Compound words: "Produktionsrückstand", "Rückstandskonzept"
 
+        Preserves explicit space markers (leading/trailing spaces) when generating variants.
+        For keyword " KI ", generates: " KI ", " kI ", " ki ", " KI "
+
         Args:
-            keyword: Original keyword from config file
+            keyword: Original keyword from config file (may include space markers)
 
         Returns:
-            Set of case variants
+            Set of case variants with preserved space markers
         """
-        variants = {keyword}
-        if keyword:
+        # Extract explicit boundary markers (leading/trailing spaces)
+        leading = ' ' if keyword.startswith(' ') else ''
+        trailing = ' ' if keyword.endswith(' ') else ''
+        core = keyword.strip()
+
+        # Generate variants for core keyword
+        core_variants = {core}
+        if core:
             # Lowercase first letter variant (common in German compound words)
-            if len(keyword) > 1:
-                variants.add(keyword[0].lower() + keyword[1:])
+            if len(core) > 1:
+                core_variants.add(core[0].lower() + core[1:])
             else:
-                variants.add(keyword.lower())
+                core_variants.add(core.lower())
             # Full lowercase (covers compound word matching)
-            variants.add(keyword.lower())
+            core_variants.add(core.lower())
             # Full uppercase
-            variants.add(keyword.upper())
-        return variants
+            core_variants.add(core.upper())
+
+        # Re-apply boundary markers to all variants
+        return {leading + v + trailing for v in core_variants}
 
     def _compile_keyword_pattern(self, keyword: str, flags: int) -> re.Pattern:
-        """Compile a regex for a keyword with special handling for short tokens."""
-        escaped = re.escape(keyword)
-        if self._should_use_word_boundaries(keyword):
-            escaped = rf"\b{escaped}\b"
-        return re.compile(escaped, flags)
+        """
+        Compile a regex for a keyword with support for explicit boundary markers.
+
+        Explicit space markers control boundary matching:
+        - ' KI ' → (?:^|\\s)KI(?:\\s|$) (standalone word)
+        - ' KI' → (?:^|\\s)KI (preceded by space/start)
+        - 'KI ' → KI(?:\\s|$) (followed by space/end)
+        - 'KI' (no spaces) → default behavior based on length
+        """
+        # Check for explicit space markers
+        has_leading = keyword.startswith(' ')
+        has_trailing = keyword.endswith(' ')
+
+        # Get core keyword without explicit spaces
+        core = keyword.strip()
+        escaped_core = re.escape(core)
+
+        # Build pattern based on explicit markers
+        if has_leading and has_trailing:
+            # ' KI ' → standalone word (surrounded by whitespace/boundaries)
+            pattern = rf'(?:^|\s){escaped_core}(?:\s|$)'
+        elif has_leading:
+            # ' KI' → preceded by space/start
+            pattern = rf'(?:^|\s){escaped_core}'
+        elif has_trailing:
+            # 'KI ' → followed by space/end
+            pattern = rf'{escaped_core}(?:\s|$)'
+        elif self._should_use_word_boundaries(core):
+            # Short keywords without explicit markers → use \b word boundaries
+            pattern = rf'\b{escaped_core}\b'
+        else:
+            # Longer keywords → substring match
+            pattern = escaped_core
+
+        return re.compile(pattern, flags)
 
     def _load_keywords(self) -> None:
         """
@@ -127,6 +191,11 @@ class KeywordMatcher:
 
         Original keywords are stored in _original_keywords for get_search_terms().
         Expanded keywords with case variants are stored in self.keywords for matching.
+
+        Leading/trailing spaces are preserved as explicit boundary markers:
+        - ' KI ' → match only as standalone word
+        - ' KI' → match when preceded by whitespace/start
+        - 'KI ' → match when followed by whitespace/end
         """
         path = Path(self.keywords_file)
 
@@ -136,11 +205,18 @@ class KeywordMatcher:
 
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
-                line = line.strip()
-                # Skip empty lines and comments
-                if not line or line.startswith("#"):
+                # Only remove newline characters, preserve leading/trailing spaces
+                line_raw = line.rstrip('\n\r')
+
+                # Skip empty lines and comment lines (after stripping for check)
+                if not line_raw or line_raw.strip().startswith("#"):
                     continue
-                self._original_keywords.add(line)
+
+                # Skip lines that are only whitespace
+                if not line_raw.strip():
+                    continue
+
+                self._original_keywords.add(line_raw)
 
         # Generate case variants if not case-sensitive
         if not self.case_sensitive:
@@ -262,18 +338,20 @@ class KeywordMatcher:
         """
         Get original keywords for portal search queries ("Directly put item" strategy).
 
-        Returns keywords as-is from the config file, suitable for URL parameters
-        on portals that support keyword search via URL:
+        Returns keywords suitable for URL parameters on portals that support
+        keyword search via URL:
         - USP Austria: q={keyword}
         - Fraunhofer: Searchkey={keyword}
 
-        These are the original keywords without case variants, as the portal
-        search typically handles case-insensitivity on its own.
+        Explicit space markers are stripped since they're only for regex matching,
+        not for portal search queries. The portal search typically handles
+        case-insensitivity on its own.
 
         Returns:
-            List of original keywords from config file
+            List of keywords from config file with space markers removed
         """
-        return list(self._original_keywords)
+        # Strip space markers - they're only for regex matching, not URL params
+        return [kw.strip() for kw in self._original_keywords]
 
 
 def load_keywords(filepath: str) -> List[str]:

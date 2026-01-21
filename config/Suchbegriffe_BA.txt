@@ -14,7 +14,8 @@ data scientists
 
 business analytics
 business intelligence
-BI
+ BI 
+ BI-
 
 data analytics
 data analysis
@@ -47,10 +48,12 @@ Prognosemodelle
 # Artificial Intelligence & Machine Learning
 # ---------------------------------
 artificial intelligence
-AI
+ AI 
+ AI-System
 
 künstliche Intelligenz
-KI
+ KI 
+ KI-
 
 machine learning
 maschinelles Lernen
@@ -67,15 +70,11 @@ reinforcement learning
 Reinforcement Learning
 
 natural language processing
-NLP
+ NLP 
+ NLP-
 computer vision
 Mustererkennung
 Bilderkennung
-
-KI-System
-KI-Systeme
-KI-gestützt
-KI-unterstützt
 
 # ---------------------------------
 # Data Engineering & Data Platforms

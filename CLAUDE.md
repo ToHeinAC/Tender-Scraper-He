@@ -362,6 +362,33 @@ Keywords are matched with these rules:
 1. **Case variants generated**: Original, lowercase first letter, all lowercase, all uppercase
 2. **Substring matching**: Keywords > 2 chars match within compound words (no word boundaries)
 3. **Short keyword protection**: Keywords ≤ 2 chars use word boundaries to prevent false positives
+4. **Explicit space markers**: Leading/trailing spaces in keywords control boundary matching
+
+#### Explicit Space Markers
+
+You can add explicit space markers to keywords for precise boundary control:
+
+| Keyword | Pattern | Matches | Does NOT Match |
+|---------|---------|---------|----------------|
+| ` KI ` | `(?:^|\s)KI(?:\s|$)` | "KI System", "für KI" | "Märkischer Kreis" |
+| ` KI` | `(?:^|\s)KI` | "KI System", "für KI" | substring at word end |
+| `KI ` | `KI(?:\s|$)` | "KI System", "KI" | substring at word start |
+| `KI` | `\bKI\b` (default for ≤2 chars) | word boundaries | compound words |
+
+Example in keywords file:
+```
+# Standard matching (current behavior)
+machine learning
+Datenanalyse
+
+# Explicit boundary matching - note the spaces!
+ KI
+ BI
+ AI
+ NLP
+```
+
+**Important**: Trailing spaces are preserved when loading keywords. Make sure your editor doesn't strip them automatically.
 
 Example: Keyword "Rückstand" matches:
 - "Rückstand" (exact)
