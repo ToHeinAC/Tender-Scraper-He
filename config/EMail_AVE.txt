@@ -2,5 +2,5 @@ recipients:
   to:
     - p.schmitt@brenk.com
   cc:
-    - tobias.hein@hotmail.de
+    - t.hein@brenk.com
   bcc: []

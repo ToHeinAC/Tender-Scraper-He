@@ -3,6 +3,5 @@ recipients:
     - t.hein@brenk.com
     - m.wolf@brenk.com
     - j.pries@brenk.com
-  cc:
-    - tobias.hein@hotmail.de
+  cc: []
   bcc: []

@@ -143,9 +143,36 @@ def get_enabled_scrapers(config: dict) -> List[str]:
     Returns:
         List of enabled portal names
     """
-    scrapers_config = config.get("scrapers", {})
-    enabled = scrapers_config.get("enabled", [])
-    disabled = set(scrapers_config.get("disabled", []))
+    scrapers_config = config.get("scrapers") or {}
+    if not isinstance(scrapers_config, dict):
+        logger.warning(
+            "Invalid 'scrapers' config type (%s). Expected dict; treating as empty.",
+            type(scrapers_config).__name__,
+        )
+        scrapers_config = {}
+
+    enabled = scrapers_config.get("enabled") or []
+    disabled_raw = scrapers_config.get("disabled") or []
+
+    if enabled is None:
+        enabled = []
+    if disabled_raw is None:
+        disabled_raw = []
+
+    if not isinstance(enabled, list):
+        logger.warning(
+            "Invalid 'scrapers.enabled' config type (%s). Expected list; treating as empty.",
+            type(enabled).__name__,
+        )
+        enabled = []
+    if not isinstance(disabled_raw, list):
+        logger.warning(
+            "Invalid 'scrapers.disabled' config type (%s). Expected list; treating as empty.",
+            type(disabled_raw).__name__,
+        )
+        disabled_raw = []
+
+    disabled = set(disabled_raw)
 
     # Filter out disabled scrapers
     return [s for s in enabled if s not in disabled]
