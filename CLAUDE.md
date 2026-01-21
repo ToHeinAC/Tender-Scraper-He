@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-The Tender Scraper System is a modular Python application that scrapes 25 German-language procurement portals (including Austrian USP, German federal e-Vergabe, and international tender aggregators), stores tender data in SQLite, and sends daily email notifications via Outlook.
+The Tender Scraper System is a modular Python application that scrapes 26 German-language procurement portals (including Austrian USP, German federal e-Vergabe, and international tender aggregators), stores tender data in SQLite, and sends daily email notifications via Outlook.
 
 ## Quick Start
 
@@ -330,6 +330,7 @@ All scrapers in this project require Selenium (`REQUIRES_SELENIUM = True`) due t
 | **SIMAP.CH** | `_simap_ch.py` | Swiss portal, form interactions, JavaScript pagination |
 | **TED eTendering** | `_ted_etendering.py` | EU portal, complex search form, dynamic content loading |
 | **GermanyTenders** | `_germanytenders.py` | JavaScript-enhanced content, URL-based pagination, cookie consent |
+| **eHealth eVergabe** | `_ehealth_evergabe.py` | eVergabe 4.9 platform, JavaScript SPA, cookie consent |
 
 #### Common Selenium Use Cases
 

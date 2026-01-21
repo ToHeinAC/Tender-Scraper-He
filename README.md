@@ -4,7 +4,7 @@ Automated scraper for German-language procurement portals. Collects tender annou
 
 ## Features
 
-- **Multi-Portal Scraping**: Supports 25 procurement portals (BGE, EWN, Vergabe NRW, Austrian USP, GermanyTenders, etc.)
+- **Multi-Portal Scraping**: Supports 26 procurement portals (BGE, EWN, Vergabe NRW, Austrian USP, GermanyTenders, eHealth eVergabe, etc.)
 - **Multi-Purpose Support**: Run separate scraping campaigns with different keywords and recipients
 - **Keyword Filtering**: Configurable search terms with exclusion support
 - **SQLite Storage**: Persistent storage with duplicate detection and per-tender email tracking
@@ -128,7 +128,7 @@ keywords:
   exclusions: [Massenspektrometer]
 
 scrapers:
-  enabled: [bge, ewn, vergabe_nrw, ...]  # 25 scrapers available
+  enabled: [bge, ewn, vergabe_nrw, ...]  # 26 scrapers available
   disabled: []
 ```
 
@@ -161,7 +161,7 @@ Short keywords (≤2 characters) use word boundaries to prevent false positives.
 **Strategy 1: First Scrape, then check** (All portals)
 - Scraper fetches all tenders from portal
 - Keywords filter results after scraping
-- Works universally across all 25 portals
+- Works universally across all 26 portals
 
 **Strategy 2: Directly put item via URL** (2 portals only)
 - Keywords passed directly in portal search URL

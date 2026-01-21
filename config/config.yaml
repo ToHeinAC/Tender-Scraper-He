@@ -84,6 +84,7 @@ scrapers:
     - e_beschaffung_at     # e-beschaffung.at (Austrian)
     - auftrag_at           # auftrag.at (Austrian)
     - germanytenders       # germanytenders.com (German tender aggregator)
+    - ehealth_evergabe     # ehealth-evergabe.de (Healthcare)
 
   disabled:
     # All scrapers currently implemented
