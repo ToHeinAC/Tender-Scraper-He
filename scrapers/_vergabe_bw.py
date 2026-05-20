@@ -11,6 +11,8 @@ from typing import List
 import logging
 
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 from scrapers.base import BaseScraper, TenderResult, ScraperError
 from scrapers.registry import register_scraper
@@ -25,6 +27,9 @@ class VergabeBWScraper(BaseScraper):
     PORTAL_URL = "https://vergabe.landbw.de/NetServer/index.jsp?function=Search&OrderBy=Publishing&Order=desc"
     REQUIRES_SELENIUM = True
 
+    # Maximum pages to scrape (236 tenders / ~25 per page = ~10 pages)
+    MAX_PAGES = 10
+
     def scrape(self) -> List[TenderResult]:
         """
         Execute scraping logic for Vergabe BW portal.
@@ -32,7 +37,8 @@ class VergabeBWScraper(BaseScraper):
         Returns:
             List of TenderResult objects
         """
-        results = []
+        all_results = []
+        seen_ids = set()
 
         try:
             # Navigate to search page
@@ -40,18 +46,91 @@ class VergabeBWScraper(BaseScraper):
             self.accept_cookies()
             time.sleep(3)
 
-            # Get page HTML
-            html = self.driver.page_source
-            soup = BeautifulSoup(html, "lxml")
+            # Scrape all pages
+            for page in range(1, self.MAX_PAGES + 1):
+                self.logger.debug(f"Scraping page {page}")
 
-            # Parse results
-            results = self._parse_results(soup)
+                # Get page HTML
+                html = self.driver.page_source
+                soup = BeautifulSoup(html, "lxml")
+
+                # Parse results
+                results = self._parse_results(soup)
+
+                if not results:
+                    if page == 1:
+                        self.logger.warning("No results found on first page")
+                    break
+
+                # Deduplicate
+                new_count = 0
+                for result in results:
+                    if result.vergabe_id and result.vergabe_id in seen_ids:
+                        continue
+                    if result.vergabe_id:
+                        seen_ids.add(result.vergabe_id)
+                    all_results.append(result)
+                    new_count += 1
+
+                self.logger.info(f"Page {page}: found {new_count} new tenders")
+
+                # Try next page
+                if page < self.MAX_PAGES:
+                    if not self._click_next_page():
+                        self.logger.debug("No more pages available")
+                        break
+                    time.sleep(3)
+
+            self.logger.info(f"Found {len(all_results)} total tenders")
 
         except Exception as e:
             self.logger.error(f"Vergabe BW scraping failed: {e}")
             raise ScraperError(self.PORTAL_NAME, str(e)) from e
 
-        return results
+        return all_results
+
+    def _click_next_page(self) -> bool:
+        """
+        Click the next page button (NetServer pagination).
+
+        Returns:
+            True if successful, False if no more pages
+        """
+        next_selectors = [
+            # NetServer specific selectors
+            "a.pageNavigatorButton[title*='nächste']",
+            "a.pageNavigatorButton[title*='Nächste']",
+            "a[href*='thContext=next']",
+            # "Weitere Ausschreibungen" link
+            "a[href*='Weitere']",
+            "//a[contains(text(), 'Weitere Ausschreibungen')]",
+            "//a[contains(text(), 'Weitere')]",
+            # Generic next page selectors
+            "a[title*='nächste Seite']",
+            "a[title*='Nächste Seite']",
+            ".pagination a.next",
+            "//a[contains(@class, 'next')]",
+        ]
+
+        for selector in next_selectors:
+            try:
+                if selector.startswith("//"):
+                    next_btn = self.driver.find_element(By.XPATH, selector)
+                else:
+                    next_btn = self.driver.find_element(By.CSS_SELECTOR, selector)
+
+                if next_btn.is_displayed() and next_btn.is_enabled():
+                    self.logger.debug(f"Clicking next page with selector: {selector}")
+                    next_btn.click()
+                    time.sleep(2)
+                    return True
+            except NoSuchElementException:
+                continue
+            except Exception as e:
+                self.logger.debug(f"Next page click failed with selector {selector}: {e}")
+                continue
+
+        return False
 
     def _parse_results(self, soup: BeautifulSoup) -> List[TenderResult]:
         """

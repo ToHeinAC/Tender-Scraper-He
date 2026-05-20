@@ -11,6 +11,8 @@ from datetime import datetime
 from typing import List
 
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 from scrapers.base import BaseScraper, TenderResult, ScraperError
 from scrapers.registry import register_scraper
@@ -24,6 +26,9 @@ class IBauScraper(BaseScraper):
     PORTAL_NAME = "ibau"
     PORTAL_URL = "https://www.ibau.de/auftraege-nach-branche/dienstleistungen/"
     REQUIRES_SELENIUM = True
+
+    # Maximum number of "Load More" clicks (12 tenders per click, ~240 total)
+    MAX_LOAD_MORE_CLICKS = 20
 
     def scrape(self) -> List[TenderResult]:
         """
@@ -44,8 +49,11 @@ class IBauScraper(BaseScraper):
             self.accept_cookies()
             time.sleep(2)
 
-            # Scroll to load dynamic content
-            self.scroll_to_bottom(timeout=15, pause=2.0)
+            # Click "Load More" button repeatedly to load more tenders
+            self._load_more_tenders()
+
+            # Scroll to ensure all content is loaded
+            self.scroll_to_bottom(timeout=10, pause=1.0)
 
             # Get page HTML
             html = self.driver.page_source
@@ -54,11 +62,81 @@ class IBauScraper(BaseScraper):
             # Parse results
             results = self._parse_results(soup)
 
+            self.logger.info(f"Found {len(results)} total tenders")
+
         except Exception as e:
             self.logger.error(f"iBau scraping failed: {e}")
             raise ScraperError(self.PORTAL_NAME, str(e)) from e
 
         return results
+
+    def _load_more_tenders(self) -> None:
+        """
+        Click "Weitere Ergebnisse laden" button repeatedly to load more tenders.
+        """
+        clicks = 0
+        consecutive_failures = 0
+
+        for _ in range(self.MAX_LOAD_MORE_CLICKS):
+            if consecutive_failures >= 3:
+                self.logger.debug("Stopping load more after 3 consecutive failures")
+                break
+
+            if self._click_load_more():
+                clicks += 1
+                consecutive_failures = 0
+                self.logger.debug(f"Load more click {clicks} successful")
+                time.sleep(2)
+            else:
+                consecutive_failures += 1
+                time.sleep(1)
+
+        self.logger.info(f"Completed {clicks} 'Load More' clicks")
+
+    def _click_load_more(self) -> bool:
+        """
+        Click the "Weitere Ergebnisse laden" (Load More) button.
+
+        Returns:
+            True if successful, False if button not found or not clickable
+        """
+        load_more_selectors = [
+            # German "Load More" button text
+            "//a[contains(text(), 'Weitere Ergebnisse laden')]",
+            "//button[contains(text(), 'Weitere Ergebnisse laden')]",
+            "//a[contains(text(), 'Mehr laden')]",
+            "//button[contains(text(), 'Mehr laden')]",
+            "//a[contains(text(), 'Weitere')]",
+            # Generic load more selectors
+            "a.load-more",
+            "button.load-more",
+            ".load-more-button",
+            "[data-action='load-more']",
+            "a[href*='loadMore']",
+        ]
+
+        for selector in load_more_selectors:
+            try:
+                if selector.startswith("//"):
+                    btn = self.driver.find_element(By.XPATH, selector)
+                else:
+                    btn = self.driver.find_element(By.CSS_SELECTOR, selector)
+
+                if btn.is_displayed() and btn.is_enabled():
+                    # Scroll element into view before clicking
+                    self.driver.execute_script(
+                        "arguments[0].scrollIntoView({block: 'center'});", btn
+                    )
+                    time.sleep(0.5)
+                    btn.click()
+                    return True
+            except NoSuchElementException:
+                continue
+            except Exception as e:
+                self.logger.debug(f"Load more click failed with selector {selector}: {e}")
+                continue
+
+        return False
 
     def _parse_results(self, soup: BeautifulSoup) -> List[TenderResult]:
         """

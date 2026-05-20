@@ -11,6 +11,8 @@ from datetime import datetime
 from typing import List
 
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 from scrapers.base import BaseScraper, TenderResult, ScraperError
 from scrapers.registry import register_scraper
@@ -25,6 +27,9 @@ class FraunhoferScraper(BaseScraper):
     PORTAL_BASE_URL = "https://vergabe.fraunhofer.de/NetServer/PublicationSearchControllerServlet"
     PORTAL_URL = f"{PORTAL_BASE_URL}?Searchkey=&function=Search&Category=InvitationToTender&TenderLaw=All&TenderKind=All&Authority="
     REQUIRES_SELENIUM = True
+
+    # Maximum pages to scrape per keyword search
+    MAX_PAGES = 5
 
     def _build_search_url(self, keyword: str = "") -> str:
         """
@@ -88,31 +93,23 @@ class FraunhoferScraper(BaseScraper):
                 self.driver.get(search_url)
                 time.sleep(3)
 
-                # Accept cookies only on first page
+                # Accept cookies only on first keyword
                 if idx == 0:
                     self.accept_cookies()
                 time.sleep(2)
 
-                # Get page HTML
-                html = self.driver.page_source
-                soup = BeautifulSoup(html, "lxml")
+                # Scrape all pages for this keyword
+                keyword_results = self._scrape_all_pages(keyword, seen_ids)
 
-                # Parse results
-                results = self._parse_results(soup)
-
-                # Deduplicate and optionally tag with keyword
-                for result in results:
-                    if result.vergabe_id and result.vergabe_id in seen_ids:
-                        continue
-                    if result.vergabe_id:
-                        seen_ids.add(result.vergabe_id)
+                # Add to results
+                for result in keyword_results:
                     # Tag result with keyword if using strategy 2
                     if keyword:
                         result.suchbegriff = keyword
                     all_results.append(result)
 
                 if keyword:
-                    self.logger.info(f"Found {len(results)} tenders for '{keyword}'")
+                    self.logger.info(f"Found {len(keyword_results)} tenders for '{keyword}'")
 
             self.logger.info(f"Found {len(all_results)} total tenders (deduplicated)")
 
@@ -121,6 +118,94 @@ class FraunhoferScraper(BaseScraper):
             raise ScraperError(self.PORTAL_NAME, str(e)) from e
 
         return all_results
+
+    def _scrape_all_pages(self, keyword: str, seen_ids: set) -> List[TenderResult]:
+        """
+        Scrape all pages for current search.
+
+        Args:
+            keyword: Current keyword being searched (for logging)
+            seen_ids: Set of already seen vergabe_ids to avoid duplicates
+
+        Returns:
+            List of TenderResult objects from all pages
+        """
+        results = []
+
+        for page in range(1, self.MAX_PAGES + 1):
+            self.logger.debug(f"Scraping page {page}" + (f" for '{keyword}'" if keyword else ""))
+
+            # Get page HTML
+            html = self.driver.page_source
+            soup = BeautifulSoup(html, "lxml")
+
+            # Parse results
+            page_results = self._parse_results(soup)
+
+            if not page_results:
+                if page == 1:
+                    self.logger.debug("No results found on first page")
+                break
+
+            # Deduplicate
+            new_count = 0
+            for result in page_results:
+                if result.vergabe_id and result.vergabe_id in seen_ids:
+                    continue
+                if result.vergabe_id:
+                    seen_ids.add(result.vergabe_id)
+                results.append(result)
+                new_count += 1
+
+            self.logger.debug(f"Page {page}: found {new_count} new tenders")
+
+            # Try next page
+            if page < self.MAX_PAGES:
+                if not self._click_next_page():
+                    self.logger.debug("No more pages available")
+                    break
+                time.sleep(3)
+
+        return results
+
+    def _click_next_page(self) -> bool:
+        """
+        Click the next page button (NetServer pagination).
+
+        Returns:
+            True if successful, False if no more pages
+        """
+        next_selectors = [
+            # NetServer specific selectors
+            "a.pageNavigatorButton[title*='nächste']",
+            "a.pageNavigatorButton[title*='Nächste']",
+            "a[href*='thContext=next']",
+            # Generic next page selectors
+            "a[title*='nächste Seite']",
+            "a[title*='Nächste Seite']",
+            ".pagination a.next",
+            "//a[contains(@class, 'pageNavigatorButton') and contains(@title, 'chste')]",
+        ]
+
+        for selector in next_selectors:
+            try:
+                if selector.startswith("//"):
+                    next_btn = self.driver.find_element(By.XPATH, selector)
+                else:
+                    next_btn = self.driver.find_element(By.CSS_SELECTOR, selector)
+
+                if next_btn.is_displayed() and next_btn.is_enabled():
+                    self.logger.debug(f"Clicking next page with selector: {selector}")
+                    next_btn.click()
+                    time.sleep(2)
+                    return True
+            except NoSuchElementException:
+                continue
+            except Exception as e:
+                self.logger.debug(f"Next page click failed with selector {selector}: {e}")
+                continue
+
+        return False
 
     def _parse_results(self, soup: BeautifulSoup) -> List[TenderResult]:
         """
