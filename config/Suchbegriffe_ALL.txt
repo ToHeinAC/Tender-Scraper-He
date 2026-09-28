@@ -12,10 +12,13 @@ atomgesetz
 stilllegung
 sicherheitsbetrachtung
 spektro
+fassmess
+freimess
 rueckbau
 rückbau
 nuklear
 radioaktiv
+kernstrahlung
 strahlung
 endlager
 bergbau

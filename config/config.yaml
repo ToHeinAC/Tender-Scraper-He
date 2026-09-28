@@ -85,6 +85,14 @@ scrapers:
     - auftrag_at           # auftrag.at (Austrian)
     - germanytenders       # germanytenders.com (German tender aggregator)
     - ehealth_evergabe     # ehealth-evergabe.de (Healthcare)
+    - oeffentlichevergabe  # oeffentlichevergabe.de (Bekanntmachungsservice, all German notices)
 
   disabled:
     # All scrapers currently implemented
+
+# oeffentlichevergabe.de (Bekanntmachungsservice)
+# ===============================================
+# Number of past publication days fetched from the daily export API.
+# Overlapping days are deduplicated by the database, so a missed run is caught up.
+oeffentlichevergabe:
+  days_back: 5

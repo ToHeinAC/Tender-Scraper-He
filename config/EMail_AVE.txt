@@ -3,4 +3,5 @@ recipients:
     - p.schmitt@brenk.com
   cc:
     - t.hein@brenk.com
-  bcc: []
+  bcc: 
+    - H.Raditschnigg@brenk.com
