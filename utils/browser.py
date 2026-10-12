@@ -17,6 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import (
     NoSuchElementException,
+    SessionNotCreatedException,
     TimeoutException,
     WebDriverException,
 )
@@ -36,6 +37,9 @@ logger = logging.getLogger(__name__)
 
 class BrowserManager:
     """Manages Selenium WebDriver instances with automatic cleanup."""
+
+    # Seconds to wait before retrying driver creation (e.g. Chrome update in progress)
+    DRIVER_RETRY_DELAY = 15
 
     # Common cookie consent selectors
     COOKIE_SELECTORS = [
@@ -100,6 +104,26 @@ class BrowserManager:
 
         return options
 
+    def _create_managed_driver(self, options: ChromeOptions) -> webdriver.Chrome:
+        """
+        Create a Chrome driver with a matching ChromeDriver from webdriver-manager.
+
+        Retries once on SessionNotCreatedException: while Chrome auto-updates,
+        webdriver-manager can briefly detect the old version and pick a cached
+        driver that no longer matches the installed browser.
+        """
+        try:
+            service = ChromeService(ChromeDriverManager().install())
+            return webdriver.Chrome(service=service, options=options)
+        except SessionNotCreatedException as e:
+            logger.warning(
+                f"Chrome session not created ({e.msg}); "
+                f"retrying with re-detected ChromeDriver in {self.DRIVER_RETRY_DELAY}s"
+            )
+            time.sleep(self.DRIVER_RETRY_DELAY)
+            service = ChromeService(ChromeDriverManager().install())
+            return webdriver.Chrome(service=service, options=options)
+
     def create_driver(self) -> webdriver.Chrome:
         """
         Create and return a new WebDriver instance.
@@ -122,8 +146,7 @@ class BrowserManager:
                 options = self._create_chrome_options()
 
                 if ChromeDriverManager is not None:
-                    service = ChromeService(ChromeDriverManager().install())
-                    self.driver = webdriver.Chrome(service=service, options=options)
+                    self.driver = self._create_managed_driver(options)
                 else:
                     self.driver = webdriver.Chrome(options=options)
 
