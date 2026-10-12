@@ -361,8 +361,10 @@ In such cases, set `REQUIRES_SELENIUM = False` and use `requests` + `BeautifulSo
 Keywords are matched with these rules:
 1. **Case variants generated**: Original, lowercase first letter, all lowercase, all uppercase
 2. **Substring matching**: Keywords > 2 chars match within compound words (no word boundaries)
-3. **Short keyword protection**: Keywords ≤ 2 chars use word boundaries to prevent false positives
+3. **Short keyword protection**: Keywords ≤ 2 letters always need a word boundary on both sides, regardless of space markers
 4. **Explicit space markers**: Leading/trailing spaces in keywords control boundary matching
+
+A word boundary is any non-word character (space, hyphen, bracket, punctuation) or start/end of text.
 
 #### Explicit Space Markers
 
@@ -370,21 +372,24 @@ You can add explicit space markers to keywords for precise boundary control:
 
 | Keyword | Pattern | Matches | Does NOT Match |
 |---------|---------|---------|----------------|
-| ` KI ` | `(?:^|\s)KI(?:\s|$)` | "KI System", "für KI" | "Märkischer Kreis" |
-| ` KI` | `(?:^|\s)KI` | "KI System", "für KI" | substring at word end |
-| `KI ` | `KI(?:\s|$)` | "KI System", "KI" | substring at word start |
-| `KI` | `\bKI\b` (default for ≤2 chars) | word boundaries | compound words |
+| `AI` / `AI ` / ` AI ` | `(?<!\w)AI(?!\w)` (always for ≤2 letters) | "AI", "AI-gestützt", "(AI)" | "HOAI", "Mai", "AIs" |
+| ` NLP ` | `(?<!\w)NLP(?!\w)` | "NLP", "NLP-Modell" | "NLPs" |
+| ` Lager` | `(?<!\w)Lager` | "Lagerhalle" | "Endlager" |
+| `Lager ` | `Lager(?!\w)` | "Endlager" | "Lagerhalle" |
+| `Lager` | `Lager` (substring) | "Lagerhalle", "Endlager" | - |
 
 Example in keywords file:
 ```
-# Standard matching (current behavior)
+# Standard matching (substring)
 machine learning
 Datenanalyse
 
+# Short keywords: always matched as standalone word
+KI
+BI
+AI
+
 # Explicit boundary matching - note the spaces!
- KI
- BI
- AI
  NLP
 ```
 

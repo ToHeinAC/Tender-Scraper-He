@@ -152,36 +152,29 @@ class KeywordMatcher:
         """
         Compile a regex for a keyword with support for explicit boundary markers.
 
-        Explicit space markers control boundary matching:
-        - ' KI ' → (?:^|\\s)KI(?:\\s|$) (standalone word)
-        - ' KI' → (?:^|\\s)KI (preceded by space/start)
-        - 'KI ' → KI(?:\\s|$) (followed by space/end)
-        - 'KI' (no spaces) → default behavior based on length
+        A boundary is any non-word character (space, hyphen, punctuation) or
+        the start/end of the text.
+
+        - Short keywords (≤2 letters, e.g. 'AI') always need a boundary on both
+          sides, regardless of space markers: matches "AI", "AI-gestützt", "(AI)",
+          but not "HOAI" or "Mai".
+        - ' Lager ' → boundary on both sides (standalone word)
+        - ' Lager' → boundary before (word start, e.g. "Lagerhalle")
+        - 'Lager ' → boundary after (word end, e.g. "Endlager")
+        - 'Lager' (no spaces) → substring match
         """
-        # Check for explicit space markers
         has_leading = keyword.startswith(' ')
         has_trailing = keyword.endswith(' ')
 
-        # Get core keyword without explicit spaces
         core = keyword.strip()
-        escaped_core = re.escape(core)
+        if self._should_use_word_boundaries(core):
+            has_leading = has_trailing = True
 
-        # Build pattern based on explicit markers
-        if has_leading and has_trailing:
-            # ' KI ' → standalone word (surrounded by whitespace/boundaries)
-            pattern = rf'(?:^|\s){escaped_core}(?:\s|$)'
-        elif has_leading:
-            # ' KI' → preceded by space/start
-            pattern = rf'(?:^|\s){escaped_core}'
-        elif has_trailing:
-            # 'KI ' → followed by space/end
-            pattern = rf'{escaped_core}(?:\s|$)'
-        elif self._should_use_word_boundaries(core):
-            # Short keywords without explicit markers → use \b word boundaries
-            pattern = rf'\b{escaped_core}\b'
-        else:
-            # Longer keywords → substring match
-            pattern = escaped_core
+        pattern = re.escape(core)
+        if has_leading:
+            pattern = r'(?<!\w)' + pattern
+        if has_trailing:
+            pattern = pattern + r'(?!\w)'
 
         return re.compile(pattern, flags)
 
